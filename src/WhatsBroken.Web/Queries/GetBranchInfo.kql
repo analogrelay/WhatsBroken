@@ -1,0 +1,17 @@
+﻿let repositories = datatable(Repository: string) ["dotnet/aspnetcore", "dotnet-aspnetcore"];
+let primaryBranches = datatable(Branch: string) ["master", "blazor-wasm"];
+
+Jobs
+| where Repository in (repositories)
+| distinct Branch
+| project RefName = Branch
+| extend 
+    Branch = iif(RefName startswith "refs/heads/", substring(RefName, 11), ""),
+    PrSuffix = iif(RefName startswith "refs/pull/", substring(RefName, 10), "")
+| extend
+    PrNumber = iif(isempty(PrSuffix), int(null), toint(substring(PrSuffix, 0, indexof(PrSuffix, "/"))))
+| extend
+    IsPrimary = (Branch startswith "release/") or (Branch in (primaryBranches)),
+    IsPr = not(isnull(PrNumber))
+| project RefName, Branch, PrNumber, IsPrimary, IsPr
+| sort by IsPrimary, IsPr desc

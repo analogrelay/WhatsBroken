@@ -38,8 +38,8 @@ namespace WhatsBroken.Web
             services.AddRazorPages();
             services.AddServerSideBlazor();
 
-            services.AddSingleton<IConfigureOptions<AzureAuthenticationOptions>, ConfigureAzureAuthenticationOptions>();
             services.Configure<KustoOptions>(Configuration.GetSection("Kusto"));
+            services.AddSingleton<AzureAuthenticationService>();
             services.AddSingleton<KustoContextFactory>();
         }
 

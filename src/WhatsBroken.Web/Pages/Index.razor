@@ -1,5 +1,30 @@
 ﻿@page "/"
+@inject KustoContextFactory KustoContextFactory
 
-<h1>Hello, world!</h1>
+<div class="display: @(IsLoaded ? "none" : "inherit")">Asking Jack Kusto...</div>
 
-Welcome to your new app.
+<div class="display: @(IsLoaded ? "inherit" : "none")">
+    <h1>Branches</h1>
+    <ul>
+        @foreach(var branch in Branches)
+        {
+            <li>@branch.RefName</li>
+        }
+    </ul>
+</div>
+
+@code {
+    // We know Blazor will call our initialization code before we can dereference this.
+    KustoContext _context = default!;
+
+    bool IsLoaded { get; set; }
+    IReadOnlyList<BranchInfo> Branches { get; set; } = Array.Empty<BranchInfo>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _context = await KustoContextFactory.CreateContextAsync();
+
+        Branches = await _context.GetBranchInfoAsync();
+        IsLoaded = true;
+    }
+}

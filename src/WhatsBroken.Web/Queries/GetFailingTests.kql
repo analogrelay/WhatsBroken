@@ -1,0 +1,43 @@
+﻿// *************************************************************************
+// Dumps a list of failing tests for the period defined by 'start' and 'end'
+// *************************************************************************
+declare query_parameters(Start: datetime = datetime(null), End: datetime = datetime(null), Repositories: string = "dotnet/aspnetcore;dotnet-aspnetcore", Branches:string = "refs/heads/master");
+
+let startVal = coalesce(Start, startofday(now()));
+let endVal = coalesce(End, endofday(now()));
+let repositories = split(Repositories, ";");
+let branchFilter = split(Branches, ";");
+
+Jobs
+| where Repository in (repositories) and Finished between (startVal..endVal) and ((toscalar(branchFilter | count) == 0) or Branch in (branchFilter))
+| join kind = inner (WorkItems) on JobId
+| join kind = inner (TestResults) on WorkItemId
+| where Result == "Fail"
+| extend NameSegments = split(WorkItemFriendlyName, "--")
+| extend Project = NameSegments[0], Framework = NameSegments[1], RunTypeFromName = iif(array_length(NameSegments) > 2, NameSegments[2], "")
+| extend ParsedProps = parse_json(Properties)
+| extend RunTypeFromProps = ParsedProps.runType, BuildNumber = ParsedProps.buildNumber, BuildDefinition = ParsedProps.buildDefinition
+| extend IsQuarantined = (Traits contains "Flaky") or (Traits contains "Quarantine")
+| project 
+    JobId, 
+    WorkItemId, 
+    Started = Started1, 
+    Finished = Finished1, 
+    ConsoleUri, 
+    Uri, 
+    QueueName = QueueName1, 
+    Type = Type1, 
+    Method, 
+    Arguments, 
+    ArgumentHash, 
+    Result, 
+    Duration, 
+    Exception, 
+    Message, 
+    StackTrace, 
+    Traits, 
+    IsQuarantined, 
+    SkipReason = Reason, 
+    Project, 
+    Framework, 
+    RunType = coalesce(RunTypeFromName, RunTypeFromProps)

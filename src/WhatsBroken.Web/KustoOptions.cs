@@ -4,7 +4,7 @@ namespace WhatsBroken.Web
 {
     class KustoOptions
     {
-        public string ClusterUrl { get; set; }
-        public string DatabaseName { get; set; }
+        public string? ClusterUrl { get; set; }
+        public string? DatabaseName { get; set; }
     }
 }
