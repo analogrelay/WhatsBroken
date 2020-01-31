@@ -14,6 +14,7 @@ namespace WhatsBroken.Web.Model
         public string ConsoleUri { get; set; } = default!;
         public string Uri { get; set; } = default!;
         public string QueueName { get; set; } = default!;
+        public string Project { get; set; } = default!;
         public string Type { get; set; } = default!;
         public string Method { get; set; } = default!;
         public string Arguments { get; set; } = default!;
@@ -26,6 +27,5 @@ namespace WhatsBroken.Web.Model
         public string Traits { get; set; } = default!;
         public bool IsQuarantined { get; set; }
         public string SkipReason { get; set; } = default!;
-        public string Project { get; set; } = default!;
     }
 }

@@ -9,9 +9,11 @@
 
   <ItemGroup>
     <None Remove="Queries\GetFailingTests.kql" />
+    <None Remove="Queries\GetQuarantinedTests.kql" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Queries\GetQuarantinedTests.kql" />
     <EmbeddedResource Include="Queries\GetFailingTests.kql" />
     <EmbeddedResource Include="Queries\GetBranchInfo.kql" />
   </ItemGroup>

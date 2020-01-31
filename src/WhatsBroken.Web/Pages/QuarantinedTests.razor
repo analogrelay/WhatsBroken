@@ -1,0 +1,49 @@
+﻿@page "/quarantined"
+@inject KustoContextFactory KustoContextFactory
+
+<h1>Currently quarantined tests</h1>
+
+<div style="@DisplayIf(!IsLoaded)">
+    <span class="oi oi-aperture" aria-hidden="true"></span>
+    Exploring the ocean with Jack Kusto (this can take 15-20 seconds) ...
+</div>
+
+<div style="@DisplayIf(IsLoaded)">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th scope="col">Project</th>
+                <th scope="col">Type</th>
+                <th scope="col">Method</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var result in Results)
+            {
+                <tr>
+                    <td>@result.Project</td>
+                    <td><pre>@result.Type</pre></td>
+                    <td><pre>@result.Method</pre></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    // We know Blazor will call our initialization code before we can dereference this.
+    KustoContext _context = default!;
+
+    bool IsLoaded { get; set; }
+    IReadOnlyList<TestCase> Results { get; set; } = Array.Empty<TestCase>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _context = await KustoContextFactory.CreateContextAsync();
+
+        Results = await _context.GetQuarantinedTestsAsync(
+            new[] { "dotnet/aspnetcore", "dotnet-aspnetcore" },
+            new[] { "refs/heads/master" });
+        IsLoaded = true;
+    }
+}
