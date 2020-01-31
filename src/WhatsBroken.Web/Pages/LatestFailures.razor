@@ -1,0 +1,87 @@
+﻿@page "/latest"
+@inject KustoContextFactory KustoContextFactory
+
+<h1>Test failures in the last 7 days</h1>
+
+<div style="@DisplayIf(!IsLoaded)">
+    <span class="oi oi-aperture" aria-hidden="true"></span>
+    Exploring the ocean with Jack Kusto ...
+</div>
+
+<div style="@DisplayIf(IsLoaded)">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th scope="col"><span class="sr-only">Build</span></th>
+                <th scope="col" class="sr-only">Run Type</th>
+                <th scope="col" class="sr-only">Quarantined</th>
+                <th scope="col">Date</th>
+                <th scope="col">Queue</th>
+                <th scope="col">Project</th>
+                <th scope="col">Type</th>
+                <th scope="col">Method</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var result in Results)
+            {
+                <tr class="@GetRowClass(result)">
+                    <td title="@FormatBuild(result)">@(string.IsNullOrEmpty(result.BuildDefinition) ? "❓" : "🔗")</td>
+                    <td class="sr-only">@result.RunType</td>
+                    <td class="sr-only">@(result.IsQuarantined ? "Quarantined" : "Not Quarantined")</td>
+                    <td title="@result.Finished">@result.Finished.Humanize()</td>
+                    <td title="@result.QueueName">📦</td>
+                    <td>@result.Project</td>
+                    <td><pre>@result.Type</pre></td>
+                    <td><pre>@(result.Method)(@result.Arguments)</pre></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    // We know Blazor will call our initialization code before we can dereference this.
+    KustoContext _context = default!;
+
+    bool IsLoaded { get; set; }
+    IReadOnlyList<TestResult> Results { get; set; } = Array.Empty<TestResult>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _context = await KustoContextFactory.CreateContextAsync();
+
+        Results = await _context.GetFailingTestsAsync(
+            DateTime.UtcNow.Date.AddDays(-7),
+            DateTime.UtcNow,
+            new[] { "dotnet/aspnetcore", "dotnet-aspnetcore" },
+            new[] { "refs/heads/master" },
+            includeQuarantined: false);
+        IsLoaded = true;
+    }
+
+    string FormatBuild(TestResult result)
+    {
+        if (string.IsNullOrEmpty(result.BuildNumber))
+        {
+            return "unknown";
+        }
+        return $"{result.BuildDefinition}#{result.BuildNumber}";
+    }
+
+    string? GetRowClass(TestResult result)
+    {
+        // In quarantine and failed in quarantine
+        if(result.RunType == "quarantined" && result.IsQuarantined)
+        {
+            return "table-warning";
+        }
+
+        // Unquarantined and failed
+        if(result.RunType == "unquarantined")
+        {
+            return "table-danger";
+        }
+        return null;
+    }
+}

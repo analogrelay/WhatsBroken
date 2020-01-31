@@ -1,12 +1,12 @@
-﻿// *************************************************************************
+// *************************************************************************
 // Dumps a list of failing tests for the period defined by 'start' and 'end'
 // *************************************************************************
-declare query_parameters(Start: datetime = datetime(null), End: datetime = datetime(null), Repositories: string = "dotnet/aspnetcore;dotnet-aspnetcore", Branches:string = "refs/heads/master");
+declare query_parameters(Start: datetime = datetime(null), End: datetime = datetime(null), Repositories: string = "dotnet/aspnetcore;dotnet-aspnetcore", Branches:string = "refs/heads/master", IncludeQuarantined: bool = bool(false));
 
-let startVal = coalesce(Start, startofday(now()));
+let startVal = coalesce(Start, startofday(now(), -7));
 let endVal = coalesce(End, endofday(now()));
-let repositories = split(Repositories, ";");
-let branchFilter = split(Branches, ";");
+let repositories = datatable (A: string) [""] | extend Repos = split(Repositories, ";") | mv-expand Repos | project Repos;
+let branchFilter = datatable (A: string) [""] | extend Branches = split(Branches, ";") | mv-expand Branches | where not(isempty(Branches)) | project Branches;
 
 Jobs
 | where Repository in (repositories) and Finished between (startVal..endVal) and ((toscalar(branchFilter | count) == 0) or Branch in (branchFilter))
@@ -14,13 +14,18 @@ Jobs
 | join kind = inner (TestResults) on WorkItemId
 | where Result == "Fail"
 | extend NameSegments = split(WorkItemFriendlyName, "--")
-| extend Project = NameSegments[0], Framework = NameSegments[1], RunTypeFromName = iif(array_length(NameSegments) > 2, NameSegments[2], "")
+| extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1]), RunTypeFromName = iif(array_length(NameSegments) > 2, NameSegments[2], "")
 | extend ParsedProps = parse_json(Properties)
-| extend RunTypeFromProps = ParsedProps.runType, BuildNumber = ParsedProps.buildNumber, BuildDefinition = ParsedProps.buildDefinition
+| extend RunTypeFromProps = tostring(ParsedProps.runType), BuildNumber = tostring(ParsedProps.buildNumber), BuildDefinition = tostring(ParsedProps.buildDefinition)
+| extend RunType = coalesce(RunTypeFromName, RunTypeFromProps)
+| where IncludeQuarantined or (RunType != "quarantined") 
 | extend IsQuarantined = (Traits contains "Flaky") or (Traits contains "Quarantine")
 | project 
-    JobId, 
-    WorkItemId, 
+    JobId = coalesce(JobId, 0), 
+    WorkItemId = coalesce(WorkItemId, 0),
+    BuildNumber,
+    BuildDefinition,
+    RunType,
     Started = Started1, 
     Finished = Finished1, 
     ConsoleUri, 
@@ -36,8 +41,8 @@ Jobs
     Message, 
     StackTrace, 
     Traits, 
-    IsQuarantined, 
+    IsQuarantined = coalesce(IsQuarantined, bool(false)), 
     SkipReason = Reason, 
     Project, 
-    Framework, 
-    RunType = coalesce(RunTypeFromName, RunTypeFromProps)
+    Framework
+| sort by Finished desc
