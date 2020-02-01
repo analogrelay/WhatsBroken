@@ -1,0 +1,17 @@
+﻿<div style="@DisplayIf(!IsLoaded)">
+    <span class="oi oi-aperture" aria-hidden="true"></span>
+    Exploring the ocean with Jack Kusto ...
+    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+</div>
+
+<div style="@DisplayIf(IsLoaded)">
+    @Content
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment? Content { get; set; }
+
+    [Parameter]
+    public bool IsLoaded { get; set; }
+}

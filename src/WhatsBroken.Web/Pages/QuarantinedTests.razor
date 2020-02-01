@@ -3,32 +3,17 @@
 
 <h1>Currently quarantined tests</h1>
 
-<div style="@DisplayIf(!IsLoaded)">
-    <span class="oi oi-aperture" aria-hidden="true"></span>
-    Exploring the ocean with Jack Kusto (this can take 15-20 seconds) ...
-</div>
-
-<div style="@DisplayIf(IsLoaded)">
-    <table class="table table-sm">
-        <thead>
-            <tr>
-                <th scope="col">Project</th>
-                <th scope="col">Type</th>
-                <th scope="col">Method</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach(var result in Results)
-            {
-                <tr>
-                    <td>@result.Project</td>
-                    <td><pre>@result.Type</pre></td>
-                    <td><pre>@result.Method</pre></td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</div>
+<LoadingOverlay IsLoaded="@IsLoaded">
+    <Content>
+        <RadzenGrid AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowPaging="false" AllowSorting="true" Data="@Results" ColumnWidth="200px">
+            <Columns>
+                <RadzenGridColumn TItem="TestCase" Property="Project" Title="Project" />
+                <RadzenGridColumn TItem="TestCase" Property="Type" Title="Type" />
+                <RadzenGridColumn TItem="TestCase" Property="Method" Title="Method" />
+            </Columns>
+        </RadzenGrid>
+    </Content>
+</LoadingOverlay>
 
 @code {
     // We know Blazor will call our initialization code before we can dereference this.

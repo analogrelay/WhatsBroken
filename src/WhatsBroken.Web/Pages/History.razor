@@ -1,0 +1,20 @@
+﻿@page "/history/{Project}/{Type}/{Method}"
+@page "/history/{Project}/{Type}/{Method}/{ArgumentHash}"
+
+<h3>History</h3>
+
+<p>Test History for @Project/@(Type).@(Method) (Args: @ArgumentHash)</p>
+
+@code {
+    [Parameter]
+    public string? Project { get; set; }
+
+    [Parameter]
+    public string? Type { get; set; }
+
+    [Parameter]
+    public string? Method { get; set; }
+
+    [Parameter]
+    public string? ArgumentHash { get; set; }
+}

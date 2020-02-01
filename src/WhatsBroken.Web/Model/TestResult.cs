@@ -6,6 +6,8 @@ namespace WhatsBroken.Web.Model
     {
         public long JobId { get; set; }
         public long WorkItemId { get; set; }
+        public string AzDoProject { get; set; } = default!;
+        public string BuildId { get; set; } = default!;
         public string BuildNumber { get; set; } = default!;
         public string BuildDefinition { get; set; } = default!;
         public string RunType { get; set; } = default!;

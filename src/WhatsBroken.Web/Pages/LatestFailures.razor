@@ -3,42 +3,54 @@
 
 <h1>Test failures in the last 7 days</h1>
 
-<div style="@DisplayIf(!IsLoaded)">
-    <span class="oi oi-aperture" aria-hidden="true"></span>
-    Exploring the ocean with Jack Kusto ...
-</div>
+<LoadingOverlay IsLoaded="IsLoaded">
+    <Content>
+        <RadzenGrid AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowPaging="false" AllowSorting="true" Data="@Results">
+            <Template>
+                @* The expanded view for a TestResult *@
+                <h4 class="text-monospace">@context.Project/@(context.Type).@(context.Method)(@context.Arguments) <TestHistoryLink Result="context" /></h4>
 
-<div style="@DisplayIf(IsLoaded)">
-    <table class="table table-sm">
-        <thead>
-            <tr>
-                <th scope="col"><span class="sr-only">Build</span></th>
-                <th scope="col" class="sr-only">Run Type</th>
-                <th scope="col" class="sr-only">Quarantined</th>
-                <th scope="col">Date</th>
-                <th scope="col">Queue</th>
-                <th scope="col">Project</th>
-                <th scope="col">Type</th>
-                <th scope="col">Method</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach(var result in Results)
-            {
-                <tr class="@GetRowClass(result)">
-                    <td title="@FormatBuild(result)">@(string.IsNullOrEmpty(result.BuildDefinition) ? "❓" : "🔗")</td>
-                    <td class="sr-only">@result.RunType</td>
-                    <td class="sr-only">@(result.IsQuarantined ? "Quarantined" : "Not Quarantined")</td>
-                    <td title="@result.Finished">@result.Finished.Humanize()</td>
-                    <td title="@result.QueueName">📦</td>
-                    <td>@result.Project</td>
-                    <td><pre>@result.Type</pre></td>
-                    <td><pre>@(result.Method)(@result.Arguments)</pre></td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</div>
+                <h5>
+                    Failed in 
+                    <BuildLink BuildId="@context.BuildId" Project="@context.AzDoProject">@FormatBuildInfo(context)</BuildLink>
+                    <small class="text-muted">@context.QueueName</small>
+                </h5>
+
+                <h5>Failure Message</h5>
+                <CodePanel>@context.Message</CodePanel>
+                <h5>Stack Trace</h5>
+                <CodePanel>@context.StackTrace</CodePanel>
+            </Template>
+            <Columns>
+                <RadzenGridColumn TItem="TestResult" Title="Date" Width="100px">
+                    <Template>
+                        <span title="@FormatBuildInfo(context)">
+                            @if (string.IsNullOrEmpty(context.BuildId))
+                            {
+                                @context.Finished.Humanize()
+                            } 
+                            else
+                            {
+                                <a href="https://dev.azure.com/dnceng/@(context.AzDoProject)/_build/results?buildId=@(context.BuildId)&view=ms.vss-test-web.build-test-results-tab" target="_blank">
+                                    @context.Finished.Humanize()
+                                </a>
+                            }
+                        </span>
+                    </Template>
+                </RadzenGridColumn>
+                <RadzenGridColumn TItem="TestResult" Title="Project">
+                    <Template><span title="@context.Project">@context.Project</span></Template>
+                </RadzenGridColumn>
+                <RadzenGridColumn TItem="TestResult" Title="Type">
+                    <Template><span class="text-monospace" title="@context.Type">@CompactNamespace(context.Type)</span></Template>
+                </RadzenGridColumn>
+                <RadzenGridColumn TItem="TestResult" Title="Method">
+                    <Template><span class="text-monospace" title="@(context.Method)(@context.Arguments)">@(context.Method)(@context.Arguments)</span></Template>
+                </RadzenGridColumn>
+            </Columns>
+        </RadzenGrid>
+    </Content>
+</LoadingOverlay>
 
 @code {
     // We know Blazor will call our initialization code before we can dereference this.
@@ -60,28 +72,12 @@
         IsLoaded = true;
     }
 
-    string FormatBuild(TestResult result)
+    string FormatBuildInfo(TestResult result)
     {
         if (string.IsNullOrEmpty(result.BuildNumber))
         {
-            return "unknown";
+            return "unknown build";
         }
         return $"{result.BuildDefinition}#{result.BuildNumber}";
-    }
-
-    string? GetRowClass(TestResult result)
-    {
-        // In quarantine and failed in quarantine
-        if(result.RunType == "quarantined" && result.IsQuarantined)
-        {
-            return "table-warning";
-        }
-
-        // Unquarantined and failed
-        if(result.RunType == "unquarantined")
-        {
-            return "table-danger";
-        }
-        return null;
     }
 }

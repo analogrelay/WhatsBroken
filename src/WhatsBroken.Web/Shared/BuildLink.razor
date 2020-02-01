@@ -1,0 +1,34 @@
+﻿@if (!string.IsNullOrEmpty(BuildId) && !string.IsNullOrEmpty(Project))
+{
+    <a href="https://dev.azure.com/dnceng/@(Project)/_build/results?buildId=@(BuildId)&view=@ViewValue" target="_blank">@ChildContent</a>
+} else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter]
+    public string? BuildId { get; set; }
+
+    [Parameter]
+    public string? Project { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public BuildViewTab View { get; set; } = BuildViewTab.Results;
+
+    string ViewValue => View switch
+    {
+        BuildViewTab.Results => "results",
+        BuildViewTab.Tests => "ms.vss-test-web.build-test-results-tab",
+        var x => x.ToString().ToLowerInvariant()
+    };
+
+    public enum BuildViewTab
+    {
+        Results,
+        Tests
+    }
+}

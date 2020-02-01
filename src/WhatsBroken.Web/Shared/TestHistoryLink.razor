@@ -1,0 +1,39 @@
+﻿@if(Result != null)
+{
+    Project = Result.Project;
+    Type = Result.Type;
+    Method = Result.Method;
+    ArgumentHash = Result.ArgumentHash;
+}
+
+<a target="_blank" title="Test history for @(Project).@(Type).@(Method) with unique argument hash '@ArgumentHash'" href="/history/@Project/@Type/@(string.IsNullOrEmpty(ArgumentHash) ? Method : $"{Method}/{ArgumentHash}")">
+    @if (ChildContent == null)
+    {
+        <span class="oi oi-clock"></span>
+        <span class="oi oi-external-link"></span>
+    }
+    else
+    {
+        @ChildContent
+    }
+</a>
+
+@code {
+    [Parameter]
+    public string? Project { get; set; }
+    
+    [Parameter]
+    public string? Type { get; set; }
+
+    [Parameter]
+    public string? Method { get; set; }
+
+    [Parameter]
+    public string? ArgumentHash { get; set; }
+
+    [Parameter]
+    public TestResult? Result { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
