@@ -22,6 +22,12 @@ stages:
           vmImage: "ubuntu-latest"
         steps:
           - task: Docker@2
+            displayName: Log in to ACR
+            condition: and(always(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+            inputs:
+              command: login
+              containerRegistry: "aspnetinfra ACR"
+          - task: Docker@2
             displayName: Build an image
             inputs:
               command: build
@@ -31,23 +37,16 @@ stages:
               tags: |
                 $(tag)
           - task: Docker@2
-            displayName: Log in to ACR
-            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
-            inputs:
-              command: login
-              containerRegistry: $(Docker.Registry)
-          - task: Docker@2
             displayName: Push image
             condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
             inputs:
               command: push
-              containerRegistry: $(Docker.Registry)
               repository: $(repository)
               tags: |
                 $(tag)
           - task: Docker@2
             displayName: Log out of ACR
-            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+            condition: and(always(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
             inputs:
               command: logout
-              containerRegistry: $(Docker.Registry)
+              containerRegistry: "aspnetinfra ACR"
