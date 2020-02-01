@@ -5,50 +5,7 @@
 
 <LoadingOverlay IsLoaded="IsLoaded">
     <Content>
-        <RadzenGrid AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowPaging="false" AllowSorting="true" Data="@Results">
-            <Template>
-                @* The expanded view for a TestResult *@
-                <h4 class="text-monospace">@context.Project/@(context.Type).@(context.Method)(@context.Arguments) <TestHistoryLink Result="context" /></h4>
-
-                <h5>
-                    Failed in 
-                    <BuildLink BuildId="@context.BuildId" Project="@context.AzDoProject">@FormatBuildInfo(context)</BuildLink>
-                    <small class="text-muted">@context.QueueName</small>
-                </h5>
-
-                <h5>Failure Message</h5>
-                <CodePanel>@context.Message</CodePanel>
-                <h5>Stack Trace</h5>
-                <CodePanel>@context.StackTrace</CodePanel>
-            </Template>
-            <Columns>
-                <RadzenGridColumn TItem="TestResult" Title="Date" Width="125px">
-                    <Template>
-                        <span title="@FormatBuildInfo(context)">
-                            @if (string.IsNullOrEmpty(context.BuildId))
-                            {
-                                @context.Finished.Humanize()
-                            } 
-                            else
-                            {
-                                <a href="https://dev.azure.com/dnceng/@(context.AzDoProject)/_build/results?buildId=@(context.BuildId)&view=ms.vss-test-web.build-test-results-tab" target="_blank">
-                                    @context.Finished.Humanize()
-                                </a>
-                            }
-                        </span>
-                    </Template>
-                </RadzenGridColumn>
-                <RadzenGridColumn TItem="TestResult" Title="Project">
-                    <Template><span title="@context.Project">@context.Project</span></Template>
-                </RadzenGridColumn>
-                <RadzenGridColumn TItem="TestResult" Title="Type">
-                    <Template><span class="text-monospace" title="@context.Type">@CompactNamespace(context.Type)</span></Template>
-                </RadzenGridColumn>
-                <RadzenGridColumn TItem="TestResult" Title="Method">
-                    <Template><span class="text-monospace" title="@(context.Method)(@context.Arguments)">@(context.Method)(@context.Arguments)</span></Template>
-                </RadzenGridColumn>
-            </Columns>
-        </RadzenGrid>
+        <TestResultGrid Results="Results" />
     </Content>
 </LoadingOverlay>
 
@@ -70,14 +27,5 @@
             new[] { "refs/heads/master" },
             includeQuarantined: false);
         IsLoaded = true;
-    }
-
-    string FormatBuildInfo(TestResult result)
-    {
-        if (string.IsNullOrEmpty(result.BuildNumber))
-        {
-            return "unknown build";
-        }
-        return $"{result.BuildDefinition}#{result.BuildNumber}";
     }
 }

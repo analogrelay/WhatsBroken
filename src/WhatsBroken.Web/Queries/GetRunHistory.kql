@@ -1,0 +1,55 @@
+﻿// ********************************************
+// Pulls the run history for the specified test
+// ********************************************
+declare query_parameters (
+    TestProject: string = "Microsoft.AspNetCore.SignalR.Client.FunctionalTests", 
+    TestType: string = "Microsoft.AspNetCore.SignalR.Client.FunctionalTests.HubConnectionTests",
+    TestMethod: string = "StreamAsyncTest",
+    TestArgumentHash: string = "l8km1jNIqhsY6dQ/kwphxV/mIis=",
+    Limit: int = 1000);
+
+// We filter by project second so that we reduce the number of rows that we have to parse the project name from
+
+TestResults
+| where Type == TestType and Method == TestMethod and ArgumentHash == TestArgumentHash
+| extend NameSegments = split(WorkItemFriendlyName, "--")
+| extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1]), RunTypeFromName = iif(array_length(NameSegments) > 2, NameSegments[2], "")
+| where Project == TestProject
+| project-away NameSegments
+| join (WorkItems) on WorkItemId
+| join (Jobs) on JobId
+| top Limit by Finished desc
+| extend ParsedProps = parse_json(Properties)
+| extend 
+    RunTypeFromProps = tostring(ParsedProps.runType), 
+    BuildNumber = tostring(ParsedProps.buildNumber), 
+    BuildDefinition = tostring(ParsedProps.buildDefinition),
+    BuildId = tostring(ParsedProps.buildId),
+    AzDoProject = tostring(ParsedProps.azdoProject)
+| extend RunType = coalesce(RunTypeFromName, RunTypeFromProps)
+| extend IsQuarantined = (Traits contains "Flaky") or (Traits contains "Quarantine")
+| project 
+    JobId = coalesce(JobId, 0), 
+    WorkItemId = coalesce(WorkItemId, 0),
+    BuildNumber,
+    BuildDefinition,
+    RunType,
+    Started = Started1, 
+    Finished = Finished1, 
+    ConsoleUri, 
+    Uri, 
+    QueueName = QueueName1, 
+    Type, 
+    Method, 
+    Arguments, 
+    ArgumentHash, 
+    Result, 
+    Duration, 
+    Exception, 
+    Message, 
+    StackTrace, 
+    Traits, 
+    IsQuarantined = coalesce(IsQuarantined, bool(false)), 
+    SkipReason = Reason, 
+    Project, 
+    Framework

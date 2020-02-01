@@ -1,9 +1,21 @@
 ﻿@page "/history/{Project}/{Type}/{Method}"
 @page "/history/{Project}/{Type}/{Method}/{ArgumentHash}"
+@inject KustoContextFactory KustoContextFactory
 
-<h3>History</h3>
+@if (string.IsNullOrEmpty(_arguments))
+{
+    <h3 title="Test History for @(Project)/@(Type).@(Method)">Test History for @(Method) <small class="text-muted">@Project</small></h3>
+}
+else
+{
+    <h3 title="Test History for @(Project)/@(Type).@(Method)(@_arguments)">Test History for @(Method)(@_arguments) <small class="text-muted">@Project</small></h3>
+}
 
-<p>Test History for @Project/@(Type).@(Method) (Args: @ArgumentHash)</p>
+<LoadingOverlay IsLoaded="IsLoaded">
+    <Content>
+        <TestResultGrid Results="Results" />
+    </Content>
+</LoadingOverlay>
 
 @code {
     [Parameter]
@@ -17,4 +29,23 @@
 
     [Parameter]
     public string? ArgumentHash { get; set; }
+
+    // We know Blazor will call our initialization code before we can dereference this.
+    KustoContext _context = default!;
+    string _arguments = string.Empty;
+
+    bool IsLoaded { get; set; }
+    IReadOnlyList<TestResult> Results { get; set; } = Array.Empty<TestResult>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _context = await KustoContextFactory.CreateContextAsync();
+
+        Results = await _context.GetRunHistoryAsync(Project, Type, Method, ArgumentHash, limit: 100);
+
+        // Resolve the arguments, if any
+        _arguments = Results.FirstOrDefault()?.Arguments ?? string.Empty;
+
+        IsLoaded = true;
+    }
 }

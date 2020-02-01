@@ -39,6 +39,19 @@ namespace WhatsBroken.Web
                 ("Branches", string.Join(";", branches)));
         }
 
+        public Task<IReadOnlyList<TestResult>> GetRunHistoryAsync(string? project, string? type, string? method, string? argumentHash, int limit = 1000, CancellationToken cancellationToken = default)
+        {
+            _logger.LogDebug("Query: GetRunHistory({Project}, {Type}, {Method}, {ArgumentHash}, {Limit})", project, type, method, argumentHash, limit);
+            return ExecuteQueryAsync<TestResult>(
+                GetQuery("GetRunHistory"),
+                cancellationToken,
+                ("TestProject", project),
+                ("TestType", type),
+                ("TestMethod", method),
+                ("TestArgumentHash", argumentHash ?? string.Empty),
+                ("Limit", limit));
+        }
+
         public Task<IReadOnlyList<TestResult>> GetFailingTestsAsync(DateTime startUtc, DateTime endUtc, IEnumerable<string> repositories, IEnumerable<string> branches, bool includeQuarantined, CancellationToken cancellationToken = default)
         {
             _logger.LogDebug("Query: GetFailingTests({StartUtc}, {EndUtc}, {Repositories}, {Branches})", startUtc, endUtc, repositories, branches);
@@ -52,7 +65,7 @@ namespace WhatsBroken.Web
                 ("IncludeQuarantined", includeQuarantined));
         }
 
-        async Task<IReadOnlyList<T>> ExecuteQueryAsync<T>(string query, CancellationToken cancellationToken, params (string Name, object Value)[] parameters)
+        async Task<IReadOnlyList<T>> ExecuteQueryAsync<T>(string query, CancellationToken cancellationToken, params (string Name, object? Value)[] parameters)
         {
             // Yes yes, I know. We log things here though and can't return a task :(.
             static async void OnCancellation((KustoContext Context, string RequestId) state)
@@ -69,14 +82,16 @@ namespace WhatsBroken.Web
                 }
             }
 
-            static void ApplyParameter(ClientRequestProperties properties, string name, object value)
+            static void ApplyParameter(ClientRequestProperties properties, string name, object? value)
             {
                 switch (value)
                 {
+                    case null:
+                        break;
                     case string sv:
                         properties.SetParameter(name, sv);
                         break;
-                    case System.DateTime dtv:
+                    case DateTime dtv:
                         properties.SetParameter(name, dtv);
                         break;
                     case TimeSpan tsv:

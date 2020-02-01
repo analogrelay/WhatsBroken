@@ -21,17 +21,31 @@ namespace WhatsBroken.Web
 
         public AzureAuthenticationService(IOptionsMonitor<AzureADOptions> azureAdOptions, IOptions<KustoOptions> kustoOptions, ILogger<AzureAuthenticationService> logger)
         {
+            _logger = logger;
+
             var adOptions = azureAdOptions.Get(AzureADDefaults.AuthenticationScheme);
 
-            using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser, OpenFlags.ReadOnly);
-            var certs = store.Certificates.Find(X509FindType.FindBySubjectName, "WhatsBroken", validOnly: false);
-            var certificate = certs.Cast<X509Certificate2>().FirstOrDefault();
+            var builder = ConfidentialClientApplicationBuilder.Create(adOptions.ClientId)
+                .WithTenantId(adOptions.TenantId);
 
-            _app = ConfidentialClientApplicationBuilder.Create(adOptions.ClientId)
-                .WithTenantId(adOptions.TenantId)
-                .WithCertificate(certificate)
-                .Build();
-            _logger = logger;
+            if(!string.IsNullOrEmpty(adOptions.ClientSecret))
+            {
+                _logger.LogInformation("Authenticating using Client Secret.");
+                builder = builder.WithClientSecret(adOptions.ClientSecret);
+            }
+            else
+            {
+                using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser, OpenFlags.ReadOnly);
+                var certs = store.Certificates.Find(X509FindType.FindBySubjectName, "WhatsBroken", validOnly: false);
+                var certificate = certs.Cast<X509Certificate2>().FirstOrDefault();
+                if(certificate != null)
+                {
+                    _logger.LogInformation("Authenticating using Certificate '{Thumbprint}'", certificate.Thumbprint);
+                    builder = builder.WithCertificate(certificate);
+                }
+            }
+            
+            _app = builder.Build();
 
             var resource = kustoOptions.Value.ClusterUrl ?? throw new ArgumentException("Missing required configuration option: 'Kusto:ClusterUrl'");
             _scopes = new[] { $"{resource}/.default" };

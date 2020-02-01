@@ -1,4 +1,6 @@
-﻿@if(Result != null)
+﻿@using System.Net
+
+@if(Result != null)
 {
     Project = Result.Project;
     Type = Result.Type;
@@ -6,7 +8,11 @@
     ArgumentHash = Result.ArgumentHash;
 }
 
-<a target="_blank" title="Test history for @(Project).@(Type).@(Method) with unique argument hash '@ArgumentHash'" href="/history/@Project/@Type/@(string.IsNullOrEmpty(ArgumentHash) ? Method : $"{Method}/{ArgumentHash}")">
+@{ 
+    var encodedHash = string.IsNullOrEmpty(ArgumentHash) ? null : WebUtility.UrlEncode(ArgumentHash);
+}
+
+<a target="_blank" title="Test history for @(Project).@(Type).@(Method) with unique argument hash '@ArgumentHash'" href="/history/@Project/@Type/@(string.IsNullOrEmpty(encodedHash) ? Method : $"{Method}/{encodedHash}")">
     @if (ChildContent == null)
     {
         <span class="oi oi-clock"></span>
