@@ -9,7 +9,7 @@ resources:
   - repo: self
 
 variables:
-  tag: "$(Build.BuildId)"
+  tag: "build.$(Build.BuildNumber)"
   repository: "aspnetinfra.azurecr.io/whatsbroken/web"
 
 stages:
@@ -31,6 +31,12 @@ stages:
               tags: |
                 $(tag)
           - task: Docker@2
+            displayName: Log in to ACR
+            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+            inputs:
+              command: login
+              containerRegistry: $(Docker.Registry)
+          - task: Docker@2
             displayName: Push image
             condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
             inputs:
@@ -39,3 +45,9 @@ stages:
               repository: $(repository)
               tags: |
                 $(tag)
+          - task: Docker@2
+            displayName: Log out of ACR
+            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+            inputs:
+              command: logout
+              containerRegistry: $(Docker.Registry)
