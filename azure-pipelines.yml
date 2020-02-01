@@ -10,7 +10,7 @@ resources:
 
 variables:
   tag: "build.$(Build.BuildNumber)"
-  repository: "aspnetinfra.azurecr.io/whatsbroken/web"
+  repository: "whatsbroken/web"
 
 stages:
   - stage: Build
