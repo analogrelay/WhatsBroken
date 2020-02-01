@@ -13,6 +13,29 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_BUILDNUMBER)' != ''">
+      <_Parameter1>Build.BuildNumber</_Parameter1>
+      <_Parameter1>$(BUILD_BUILDNUMBER)</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_BUILDDEFINITIONNAME)' != ''">
+      <_Parameter1>Build.BuildDefinitionName</_Parameter1>
+      <_Parameter1>$(BUILD_BUILDDEFINITIONNAME)</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_BUILDID)' != ''">
+      <_Parameter1>Build.BuildId</_Parameter1>
+      <_Parameter1>$(BUILD_BUILDID)</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_SOURCEVERSION)' != ''">
+      <_Parameter1>Build.SourceVersion</_Parameter1>
+      <_Parameter1>$(BUILD_SOURCEVERSION)</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_SOURCEBRANCH)' != ''">
+      <_Parameter1>Build.SourceBranch</_Parameter1>
+      <_Parameter1>$(BUILD_SOURCEBRANCH)</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Queries\*.kql" />
   </ItemGroup>
 
