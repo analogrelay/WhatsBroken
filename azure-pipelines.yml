@@ -26,7 +26,7 @@ stages:
             condition: and(always(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
             inputs:
               command: login
-              containerRegistry: "aspnetinfra ACR"
+              containerRegistry: $(containerRegistry)
           - task: Docker@2
             displayName: Build Docker Image
             inputs:
@@ -52,4 +52,4 @@ stages:
             condition: and(always(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
             inputs:
               command: logout
-              containerRegistry: "aspnetinfra ACR"
+              containerRegistry: $(containerRegistry)
