@@ -16,13 +16,15 @@ Jobs
 | extend NameSegments = split(WorkItemFriendlyName, "--")
 | extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1]), RunTypeFromName = iif(array_length(NameSegments) > 2, NameSegments[2], "")
 | extend ParsedProps = parse_json(Properties)
-| extend RunTypeFromProps = tostring(ParsedProps.runType), BuildNumber = tostring(ParsedProps.buildNumber), BuildDefinition = tostring(ParsedProps.buildDefinition)
+| extend RunTypeFromProps = tostring(ParsedProps.runType), BuildNumber = tostring(ParsedProps.buildNumber), BuildDefinition = tostring(ParsedProps.buildDefinition), BuildId = tostring(ParsedProps.buildId), AzDoProject = tostring(ParsedProps.azdoProject)
 | extend RunType = coalesce(RunTypeFromName, RunTypeFromProps)
 | where IncludeQuarantined or (RunType != "quarantined") 
 | extend IsQuarantined = (Traits contains "Flaky") or (Traits contains "Quarantine")
 | project 
     JobId = coalesce(JobId, 0), 
     WorkItemId = coalesce(WorkItemId, 0),
+    AzDoProject,
+    BuildId,
     BuildNumber,
     BuildDefinition,
     RunType,
