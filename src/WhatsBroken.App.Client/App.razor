@@ -1,0 +1,21 @@
+﻿<AuthorizeView>
+    <Authorized>
+        <Router AppAssembly="@typeof(Program).Assembly">
+            <Found Context="routeData">
+                <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+            </Found>
+            <NotFound>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <p>Sorry, there's nothing at this address.</p>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="jumbotron">
+            <h1 class="display-4">Log in required</h1>
+            <p class="lead">You must log in with your Microsoft Corporate account to continue.</p>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
