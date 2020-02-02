@@ -34,6 +34,7 @@ stages:
               dockerfile: "src/WhatsBroken.Web/Dockerfile"
               repository: $(repository)
               buildContext: "."
+              arguments: --build-arg BUILD_BUILDNUMBER --build-arg BUILD_BUILDDEFINITIONNAME --build-arg BUILD_BUILDID --build-arg BUILD_SOURCEVERSION --build-arg BUILD_SOURCEBRANCH
               tags: |
                 $(tag)
                 live
