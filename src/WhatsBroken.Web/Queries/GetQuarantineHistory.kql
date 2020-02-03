@@ -1,0 +1,37 @@
+﻿// ********************************************
+// Gets the quarantine history for the specified test
+// ********************************************
+declare query_parameters (
+    TestProject: string = "dotnet-microsoft.openapi.Tests", 
+    TestType: string = "Microsoft.DotNet.OpenApi.Add.Tests.OpenApiAddFileTests",
+    TestMethod: string = "OpenApi_Add_MultipleTimes_OnlyOneReference",
+    TestArgumentHash: string = "*",
+    Limit: int = 1000);
+
+// Grab the most recent unquarantined run of this test
+let lastUnquarantinedDate = toscalar(TestResults
+| where Type == TestType and Method == TestMethod and (TestArgumentHash == "*" or ArgumentHash == TestArgumentHash)
+| extend NameSegments = split(WorkItemFriendlyName, "--")
+| extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1]), RunTypeFromName = iif(array_length(NameSegments) > 2, NameSegments[2], "")
+| where Project == TestProject
+| project-away NameSegments
+| join (WorkItems) on WorkItemId
+| join (Jobs) on JobId
+| top Limit by Finished desc
+| where not((Traits contains "Flaky") or (Traits contains "Quarantine"))
+| project Finished
+| take 1);
+
+// Now compute over all the tests since then
+TestResults
+| where Type == TestType and Method == TestMethod and (TestArgumentHash == "*" or ArgumentHash == TestArgumentHash)
+| extend NameSegments = split(WorkItemFriendlyName, "--")
+| extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1]), RunTypeFromName = iif(array_length(NameSegments) > 2, NameSegments[2], "")
+| where Project == TestProject
+| project-away NameSegments
+| join (WorkItems) on WorkItemId
+| join (Jobs) on JobId
+| extend IsQuarantined = (Traits contains "Flaky") or (Traits contains "Quarantine")
+| where IsQuarantined and Finished > lastUnquarantinedDate
+| summarize TotalRuns = count(), PassingRuns = countif(Result == "Pass"), SkippedRuns = countif(Result == "Skip"), FailingRuns = countif(Result == "Fail"), LastRun = max(Finished) by Project, Type, Method, Arguments
+| extend QuarantinedSince = lastUnquarantinedDate
