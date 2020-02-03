@@ -1,6 +1,6 @@
-﻿// ********************************************
-// Gets the quarantine history for the specified test
-// ********************************************
+﻿// *****************************************
+// Gets the quarantine history for the test.
+// *****************************************
 declare query_parameters (
     TestProject: string = "dotnet-microsoft.openapi.Tests", 
     TestType: string = "Microsoft.DotNet.OpenApi.Add.Tests.OpenApiAddFileTests",
@@ -33,5 +33,36 @@ TestResults
 | join (Jobs) on JobId
 | extend IsQuarantined = (Traits contains "Flaky") or (Traits contains "Quarantine")
 | where IsQuarantined and Finished > lastUnquarantinedDate
-| summarize TotalRuns = count(), PassingRuns = countif(Result == "Pass"), SkippedRuns = countif(Result == "Skip"), FailingRuns = countif(Result == "Fail"), LastRun = max(Finished) by Project, Type, Method, Arguments
-| extend QuarantinedSince = lastUnquarantinedDate
+| extend ParsedProps = parse_json(Properties)
+| extend 
+    RunTypeFromProps = tostring(ParsedProps.runType), 
+    BuildNumber = tostring(ParsedProps.buildNumber), 
+    BuildDefinition = tostring(ParsedProps.buildDefinition),
+    BuildId = tostring(ParsedProps.buildId),
+    AzDoProject = tostring(ParsedProps.azdoProject)
+| extend RunType = coalesce(RunTypeFromName, RunTypeFromProps)
+| project 
+    JobId = coalesce(JobId, 0), 
+    WorkItemId = coalesce(WorkItemId, 0),
+    BuildNumber,
+    BuildDefinition,
+    RunType,
+    Started = Started1, 
+    Finished = Finished1, 
+    ConsoleUri, 
+    Uri, 
+    QueueName = QueueName1, 
+    Type, 
+    Method, 
+    Arguments, 
+    ArgumentHash, 
+    Result, 
+    Duration, 
+    Exception, 
+    Message, 
+    StackTrace, 
+    Traits, 
+    IsQuarantined = coalesce(IsQuarantined, bool(false)), 
+    SkipReason = Reason, 
+    Project, 
+    Framework
