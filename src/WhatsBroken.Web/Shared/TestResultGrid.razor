@@ -1,114 +1,154 @@
-﻿@if (Results is object)
+﻿@inject QuarantineTracker QuarantineTracker
+
+@if (Results is object)
 {
-    <RadzenGrid AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowPaging="false" AllowSorting="true" Data="@Results">
-        <Template>
-            @* The expanded view for a TestResult *@
-            <h4 class="text-monospace">@context.Project/@(context.Type).@(context.Method)(@context.Arguments) <TestHistoryLink Result="context" /></h4>
-
-            @if (context.Result == "Fail")
+    <table class="table table-sm table-responsive table-striped table-datagrid">
+        <thead>
+            <tr>
+                <th scope="col"><span class="sr-only">Expand for more details</span></th>
+                <th scope="col"><span class="sr-only">Status</span></th>
+                <th scope="col">Date</th>
+                <th scope="col">Project</th>
+                <th scope="col">Type</th>
+                <th scope="col">Method</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var (result, state) in _rows)
             {
-                <h5>
-                    Failed in 
-                    <BuildLink BuildId="@context.BuildId" Project="@context.AzDoProject">@FormatBuildInfo(context)</BuildLink>
-                    <small class="text-muted">@context.QueueName</small>
-                </h5>
-
-                <h5>Duration: @context.Duration</h5>
-
-                <h5>Failure Message</h5>
-                <CodePanel>@context.Message</CodePanel>
-                <h5>Stack Trace</h5>
-                <CodePanel>@context.StackTrace</CodePanel>
-            }
-            else if(context.Result == "Skip")
-            {
-                <h5>
-                    Skipped in 
-                    <BuildLink BuildId="@context.BuildId" Project="@context.AzDoProject">@FormatBuildInfo(context)</BuildLink>
-                    <small class="text-muted">@context.QueueName</small>
-                </h5>
-
-                <h5>@context.SkipReason</h5>
-            }
-            else if(context.Result == "Pass")
-            {
-                <h5>
-                    Passed in 
-                    <BuildLink BuildId="@context.BuildId" Project="@context.AzDoProject">@FormatBuildInfo(context)</BuildLink>
-                    <small class="text-muted">@context.QueueName</small>
-                </h5>
-
-                <h5>Duration: @context.Duration</h5>
-            }
-        </Template>
-        <Columns>
-            <RadzenGridColumn TItem="TestResult" Title="Date" Width="150px">
-                <Template>
-                    <span title="@FormatBuildInfo(context)" class="@GetColor(context)">
-                        @switch(context.Result)
+                <tr class="@GetRowClasses(result)">
+                    <td>
+                        <a @onclick="@(_ => state.ToggleExpanded())">
+                            <span class="oi @(state.IsExpanded ? "oi-chevron-bottom" : "oi-chevron-right")"></span>
+                        </a>
+                    </td>
+                    <td>
+                        @switch (result.Result)
                         {
                             case "Skip":
-                                @:➖
+                                <span title="Skipped" class="symbol">➖</span>
                                 break;
                             case "Fail":
-                                @:❌
+                                <span title="Failed" class="symbol">❌</span>
                                 break;
                             default:
-                                @:✔
+                                <span title="Passed" class="symbol">✔</span>
                                 break;
                         }
+                    </td>
+                    <td>
+                        <span title="@FormatBuildInfo(result, includeDate: true)">
+                            @if (string.IsNullOrEmpty(result.BuildId))
+                            {
+                                @result.Finished.Humanize()
+                            }
+                            else
+                            {
+                                <a href="https://dev.azure.com/dnceng/@(result.AzDoProject)/_build/results?buildId=@(result.BuildId)&view=ms.vss-test-web.build-test-results-tab" target="_blank">
+                                    @result.Finished.Humanize()
+                                </a>
+                            }
+                        </span>
+                    </td>
+                    <td><span title="@result.Project">@result.Project</span></td>
+                    <td><span class="text-monospace" title="@result.Type">@CompactNamespace(result.Type)</span></td>
+                    <td><span class="text-monospace" title="@(result.Method)(@result.Arguments)">@(result.Method)(@result.Arguments)</span></td>
+                </tr>
+                <tr hidden="@(!state.IsExpanded)">
+                    <td></td>
+                    <td colspan="5">
+                        <p class="lead text-monospace">@(result.Method)(@result.Arguments) <TestHistoryLink Result="result" /></p>
+                        <p>In @result.Project/@result.Type</p>
 
-                        @if (string.IsNullOrEmpty(context.BuildId))
+                        @if (result.Result == "Fail")
                         {
-                            @context.Finished.Humanize()
-                        }
-                        else
-                        {
-                            <a href="https://dev.azure.com/dnceng/@(context.AzDoProject)/_build/results?buildId=@(context.BuildId)&view=ms.vss-test-web.build-test-results-tab" target="_blank">
-                                @context.Finished.Humanize()
-                            </a>
-                        }
+                            <h5>
+                                Failed in
+                                <BuildLink BuildId="@result.BuildId" Project="@result.AzDoProject">@FormatBuildInfo(result, includeDate: false)</BuildLink>
+                                <small class="text-muted">@result.QueueName</small>
+                            </h5>
 
-                        @if(context.IsQuarantined)
-                        {
-                            @:🏥
+                            <h5>Duration: @result.Duration</h5>
+
+                            <h5>Failure Message</h5>
+                            <CodePanel>@result.Message</CodePanel>
+                            <h5>Stack Trace</h5>
+                            <CodePanel>@result.StackTrace</CodePanel>
                         }
-                    </span>
-                </Template>
-            </RadzenGridColumn>
-            <RadzenGridColumn TItem="TestResult" Title="Project">
-                <Template><span title="@context.Project">@context.Project</span></Template>
-            </RadzenGridColumn>
-            <RadzenGridColumn TItem="TestResult" Title="Type">
-                <Template><span class="text-monospace" title="@context.Type">@CompactNamespace(context.Type)</span></Template>
-            </RadzenGridColumn>
-            <RadzenGridColumn TItem="TestResult" Title="Method">
-                <Template><span class="text-monospace" title="@(context.Method)(@context.Arguments)">@(context.Method)(@context.Arguments)</span></Template>
-            </RadzenGridColumn>
-        </Columns>
-    </RadzenGrid>
+                        else if (result.Result == "Skip")
+                        {
+                            <h5>
+                                Skipped in
+                                <BuildLink BuildId="@result.BuildId" Project="@result.AzDoProject">@FormatBuildInfo(result, includeDate: false)</BuildLink>
+                                <small class="text-muted">@result.QueueName</small>
+                            </h5>
+
+                            <h5>@result.SkipReason</h5>
+                        }
+                        else if (result.Result == "Pass")
+                        {
+                            <h5>
+                                Passed in
+                                <BuildLink BuildId="@result.BuildId" Project="@result.AzDoProject">@FormatBuildInfo(result, includeDate: false)</BuildLink>
+                                <small class="text-muted">@result.QueueName</small>
+                            </h5>
+
+                            <h5>Duration: @result.Duration</h5>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
 }
 
 @code {
-    [Parameter]
-    public IEnumerable<TestResult>? Results { get; set; }
+    IReadOnlyList<RowState> _rows = Array.Empty<RowState>();
 
-    string FormatBuildInfo(TestResult result)
+    [Parameter]
+    public IEnumerable<TestResult>? Results
     {
-        if (string.IsNullOrEmpty(result.BuildNumber))
-        {
-            return "unknown build";
-        }
-        return $"{result.BuildDefinition}#{result.BuildNumber}";
+        get => _rows.Select(r => r.Data);
+        set => _rows = value.Select(t => new RowState(t)).ToList();
     }
 
-    string GetColor(TestResult result)
+    string FormatBuildInfo(TestResult result, bool includeDate)
     {
-        return result.Result switch
+        var buildInfo = string.IsNullOrEmpty(result.BuildNumber) ?
+            "unknown build" :
+            $"{result.BuildDefinition}#{result.BuildNumber}";
+
+        return includeDate ? $"{buildInfo} ({result.Finished:O})" : buildInfo;
+    }
+
+    string GetRowClasses(TestResult result)
+    {
+        if(QuarantineTracker.IsTestQuarantined(result))
         {
-            "Fail" => "text-danger",
-            "Skip" => "text-secondary",
-            _ => "text-success",
-        };
+            return "table-secondary test-quarantined";
+        }
+        return "";
+    }
+
+    class RowState
+    {
+        public TestResult Data { get; set; }
+        public bool IsExpanded { get; set; }
+
+        public RowState(TestResult data)
+        {
+            Data = data;
+        }
+
+        public void Deconstruct(out TestResult data, out RowState state)
+        {
+            data = Data;
+            state = this;
+        }
+
+        public void ToggleExpanded()
+        {
+            IsExpanded = !IsExpanded;
+        }
     }
 }

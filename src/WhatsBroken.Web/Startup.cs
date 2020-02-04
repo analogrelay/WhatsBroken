@@ -44,6 +44,8 @@ namespace WhatsBroken.Web
             services.AddSingleton<AzureAuthenticationService>();
             services.AddSingleton<KustoContextFactory>();
 
+            services.AddQuarantineTracking(Configuration);
+
             // App Services for Containers options
             services.Configure<ForwardedHeadersOptions>(options =>
             {

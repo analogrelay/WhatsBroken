@@ -12,7 +12,7 @@ using WhatsBroken.Web.Model;
 
 namespace WhatsBroken.Web
 {
-    class KustoContext
+    public class KustoContext
     {
         static readonly ConcurrentDictionary<string, string> _queryCache = new ConcurrentDictionary<string, string>();
 

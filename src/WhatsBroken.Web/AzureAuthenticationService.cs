@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace WhatsBroken.Web
 {
-    class AzureAuthenticationService
+    public class AzureAuthenticationService
     {
         readonly SemaphoreSlim _acquireTokenLock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
         readonly IConfidentialClientApplication _app;

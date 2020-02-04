@@ -4,6 +4,8 @@ namespace WhatsBroken.Web.Model
 {
     public class TestResult
     {
+        private string _project = default!;
+
         public long JobId { get; set; }
         public long WorkItemId { get; set; }
         public string AzDoProject { get; set; } = default!;
@@ -16,7 +18,12 @@ namespace WhatsBroken.Web.Model
         public string ConsoleUri { get; set; } = default!;
         public string Uri { get; set; } = default!;
         public string QueueName { get; set; } = default!;
-        public string Project { get; set; } = default!;
+        public string Project
+        {
+            get => _project;
+            set => _project = SanitizeProject(value);
+        }
+
         public string Type { get; set; } = default!;
         public string Method { get; set; } = default!;
         public string Arguments { get; set; } = default!;
@@ -29,5 +36,16 @@ namespace WhatsBroken.Web.Model
         public string Traits { get; set; } = default!;
         public bool IsQuarantined { get; set; }
         public string SkipReason { get; set; } = default!;
+
+        private string SanitizeProject(string value)
+        {
+            // Do a little data clean-up
+            if(value.Contains("-netcoreapp"))
+            {
+                var splat = value.Split('-');
+                return string.Join("-", splat[0..^1]);
+            }
+            return value;
+        }
     }
 }

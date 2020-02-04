@@ -1,31 +1,23 @@
 ﻿@page "/"
 @inject KustoContextFactory KustoContextFactory
 
-<h1>Test failures in the last 7 days</h1>
-
-<LoadingOverlay IsLoaded="IsLoaded">
-    <Content>
-        <TestResultGrid Results="Results" />
-    </Content>
-</LoadingOverlay>
+<QueryView TResult="TestResult" OnLoadData="OnLoadDataAsync">
+    <HeaderContent>
+        Test failures in the last 7 days
+    </HeaderContent>
+    <ChildContent Context="results">
+        <TestResultGrid Results="results" />
+    </ChildContent>
+</QueryView>
 
 @code {
-    // We know Blazor will call our initialization code before we can dereference this.
-    KustoContext _context = default!;
-
-    bool IsLoaded { get; set; }
-    IReadOnlyList<TestResult> Results { get; set; } = Array.Empty<TestResult>();
-
-    protected override async Task OnInitializedAsync()
+    async Task OnLoadDataAsync(QueryView<TestResult>.LoadDataEventArgs args)
     {
-        _context = await KustoContextFactory.CreateContextAsync();
-
-        Results = await _context.GetFailingTestsAsync(
+        args.Results = await args.Context.GetFailingTestsAsync(
             DateTime.UtcNow.Date.AddDays(-7),
             DateTime.UtcNow,
             new[] { "dotnet/aspnetcore", "dotnet-aspnetcore" },
             new[] { "refs/heads/master" },
             includeQuarantined: false);
-        IsLoaded = true;
     }
 }

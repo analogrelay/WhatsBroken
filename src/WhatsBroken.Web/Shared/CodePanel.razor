@@ -1,4 +1,5 @@
-﻿<div class="px-1 bg-danger"><pre class="pre-scrollable">@ChildContent</pre></div>
+﻿@* We use pl (left padding) and pt (top padding) but not bottom or right padding since it would make the scrollbars weird. *@
+<div class="pl-2 pt-2 bg-warning" style="max-width: 95vw"><pre class="pre-scrollable">@ChildContent</pre></div>
 
 @code {
     [Parameter]

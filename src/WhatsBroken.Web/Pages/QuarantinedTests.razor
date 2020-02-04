@@ -1,34 +1,38 @@
 ﻿@page "/quarantined"
 @inject KustoContextFactory KustoContextFactory
 
-<h1>Currently quarantined tests</h1>
-
-<LoadingOverlay IsLoaded="@IsLoaded">
-    <Content>
-        <RadzenGrid AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" AllowPaging="false" AllowSorting="true" Data="@Results" ColumnWidth="200px">
-            <Columns>
-                <RadzenGridColumn TItem="TestCase" Property="Project" Title="Project" />
-                <RadzenGridColumn TItem="TestCase" Property="Type" Title="Type" />
-                <RadzenGridColumn TItem="TestCase" Property="Method" Title="Method" />
-            </Columns>
-        </RadzenGrid>
-    </Content>
-</LoadingOverlay>
+<QueryView TResult="TestCase" OnLoadData="OnLoadDataAsync">
+    <HeaderContent>
+        Currently quarantined tests
+    </HeaderContent>
+    <ChildContent Context="results">
+        <table class="table table-sm table-responsive table-striped table-datagrid">
+            <thead>
+                <tr>
+                    <th scope="col">Project</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Method</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(var result in results)
+                {
+                    <tr class="test-quarantined">
+                        <td title="@result.Project">@result.Project</td>
+                        <td title="@result.Type"><span class="text-monospace">@CompactNamespace(result.Type)</span></td>
+                        <td title="@result.Method"><span class="text-monospace">@result.Method</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </ChildContent>
+</QueryView>
 
 @code {
-    // We know Blazor will call our initialization code before we can dereference this.
-    KustoContext _context = default!;
-
-    bool IsLoaded { get; set; }
-    IReadOnlyList<TestCase> Results { get; set; } = Array.Empty<TestCase>();
-
-    protected override async Task OnInitializedAsync()
+    async Task OnLoadDataAsync(QueryView<TestCase>.LoadDataEventArgs args)
     {
-        _context = await KustoContextFactory.CreateContextAsync();
-
-        Results = await _context.GetQuarantinedTestsAsync(
+        args.Results = await args.Context.GetQuarantinedTestsAsync(
             new[] { "dotnet/aspnetcore", "dotnet-aspnetcore" },
             new[] { "refs/heads/master" });
-        IsLoaded = true;
     }
 }

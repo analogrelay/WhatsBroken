@@ -1,0 +1,65 @@
+﻿@typeparam TResult
+@inject KustoContextFactory KustoContextFactory
+
+<div class="pt-3 clearfix">
+    <div class="mb-3 datagrid-tools-panel">
+        @ToolsPanel
+        <LegendButton />
+    </div>
+
+    <h1 title="@HeaderTitle">@HeaderContent</h1>
+</div>
+
+<div class="pt-2">
+    <LoadingOverlay IsLoaded="_isLoaded">
+        <Content>
+            <div class="query-view-host">
+                <div class="query-view-container">
+                    @ChildContent?.Invoke(_results)
+                </div>
+            </div>
+        </Content>
+    </LoadingOverlay>
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment? ToolsPanel { get; set; }
+
+    [Parameter]
+    public string? HeaderTitle { get; set; }
+
+    [Parameter]
+    public RenderFragment? HeaderContent { get; set; }
+
+    [Parameter]
+    public RenderFragment<IReadOnlyList<TResult>?>? ChildContent { get; set; }
+
+    [Parameter]
+    public EventCallback<LoadDataEventArgs> OnLoadData { get; set; }
+
+    // We know Blazor will call our initialization code before we can dereference this.
+    KustoContext _context = default!;
+    bool _isLoaded;
+    IReadOnlyList<TResult> _results = Array.Empty<TResult>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _context = await KustoContextFactory.CreateContextAsync();
+        var args = new LoadDataEventArgs(_context);
+        await OnLoadData.InvokeAsync(args);
+        _results = args.Results;
+        _isLoaded = true;
+    }
+
+    public class LoadDataEventArgs
+    {
+        public KustoContext Context { get; }
+        public IReadOnlyList<TResult> Results { get; set; } = Array.Empty<TResult>();
+
+        public LoadDataEventArgs(KustoContext context)
+        {
+            Context = context;
+        }
+    }
+}

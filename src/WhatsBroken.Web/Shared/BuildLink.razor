@@ -1,6 +1,6 @@
 ﻿@if (!string.IsNullOrEmpty(BuildId) && !string.IsNullOrEmpty(Project))
 {
-    <a href="https://dev.azure.com/dnceng/@(Project)/_build/results?buildId=@(BuildId)&view=@ViewValue" target="_blank">@ChildContent</a>
+    <a href="https://dev.azure.com/dnceng/@(Project)/_build/results?buildId=@(BuildId)&view=@ViewValue" target="_blank">@ChildContent <span class="oi oi-external-link"></span></a>
 } else
 {
     @ChildContent

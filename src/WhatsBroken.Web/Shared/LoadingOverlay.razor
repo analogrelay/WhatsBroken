@@ -1,10 +1,11 @@
-﻿<div style="@DisplayIf(!IsLoaded)">
-    <span class="oi oi-aperture" aria-hidden="true"></span>
-    Exploring the ocean with Jack Kusto ...
-    <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+﻿<div hidden="@IsLoaded">
+    <div class="spinner-grow text-primary" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+    Exploring the ocean with Jack Kusto (for some queries, this can take up to 30 seconds) ...
 </div>
 
-<div style="@DisplayIf(IsLoaded)">
+<div hidden="@(!IsLoaded)">
     @Content
 </div>
 

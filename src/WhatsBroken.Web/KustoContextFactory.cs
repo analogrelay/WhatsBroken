@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace WhatsBroken.Web
 {
-    class KustoContextFactory
+    public class KustoContextFactory
     {
         readonly AzureAuthenticationService _azureAuth;
         readonly IOptions<KustoOptions> _options;

@@ -1,6 +1,6 @@
 ﻿namespace WhatsBroken.Web.Model
 {
-    class BranchInfo
+    public class BranchInfo
     {
         public string? RefName { get; set; }
         public string? Branch { get; set; }
