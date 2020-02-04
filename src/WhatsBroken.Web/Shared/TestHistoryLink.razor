@@ -12,11 +12,11 @@
     var encodedHash = string.IsNullOrEmpty(ArgumentHash) ? null : WebUtility.UrlEncode(ArgumentHash);
 }
 
-<a target="_blank" title="Test history for @(Project).@(Type).@(Method) with unique argument hash '@ArgumentHash'" href="/history/@Project/@Type/@(string.IsNullOrEmpty(encodedHash) ? Method : $"{Method}/{encodedHash}")">
+<a target="_blank" class="@CssClass" title="Test history for @(Project).@(Type).@(Method) with unique argument hash '@ArgumentHash'" href="/history/@Project/@Type/@(string.IsNullOrEmpty(encodedHash) ? Method : $"{Method}/{encodedHash}")">
     @if (ChildContent == null)
     {
-        <span class="oi oi-clock"></span>
-        <span class="oi oi-external-link"></span>
+        <span class="icofont-clock-time"></span>
+        <span class="icofont-external-link"></span>
     }
     else
     {
@@ -42,4 +42,7 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
 }

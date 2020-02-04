@@ -19,7 +19,7 @@
                 <tr class="@GetRowClasses(result)">
                     <td>
                         <a @onclick="@(_ => state.ToggleExpanded())">
-                            <span class="oi @(state.IsExpanded ? "oi-chevron-bottom" : "oi-chevron-right")"></span>
+                            <span class="oi @(state.IsExpanded ? "icofont-rounded-down" : "icofont-rounded-right")"></span>
                         </a>
                     </td>
                     <td>
@@ -34,6 +34,11 @@
                             default:
                                 <span title="Passed" class="symbol">✔</span>
                                 break;
+                        }
+
+                        @if (QuarantineTracker.IsTestQuarantined(result))
+                        {
+                            <span title="Quarantined" class="icofont-bandage"></span>
                         }
                     </td>
                     <td>
@@ -51,50 +56,49 @@
                         </span>
                     </td>
                     <td><span title="@result.Project">@result.Project</span></td>
-                    <td><span class="text-monospace" title="@result.Type">@CompactNamespace(result.Type)</span></td>
-                    <td><span class="text-monospace" title="@(result.Method)(@result.Arguments)">@(result.Method)(@result.Arguments)</span></td>
+                    <td><code title="@result.Type">@CompactNamespace(result.Type)</code></td>
+                    <td><code title="@(result.Method)(@result.Arguments)">@(result.Method)(@result.Arguments)</code></td>
                 </tr>
                 <tr hidden="@(!state.IsExpanded)">
-                    <td></td>
-                    <td colspan="5">
-                        <p class="lead text-monospace">@(result.Method)(@result.Arguments) <TestHistoryLink Result="result" /></p>
-                        <p>In @result.Project/@result.Type</p>
+                    <td colspan="6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 title="@(result.Type).@(result.Method)(@result.Arguments)">
+                                    <code>@(result.Type).@(result.Method)(@result.Arguments)</code>
+                                </h5>
+                                <div>
+                                    @switch (result.Result)
+                                    {
+                                        case "Fail":<span class="badge badge-danger">❌ Failed</span> break;
+                                        case "Skip": <span class="badge badge-secondary">➖ Skipped</span> break;
+                                        case "Pass": <span class="badge badge-success">✔ Passed</span>break;
+                                    }
+                                    <BuildLink CssClass="badge badge-primary" BuildId="@result.BuildId" Project="@result.AzDoProject">@FormatBuildInfo(result, includeDate: false)</BuildLink>
+                                    <span class="badge badge-secondary">@GetQueueIcon(result.QueueName) @result.QueueName</span>
+                                    <TestHistoryLink CssClass="badge badge-info" Result="result">History <span class="icofont-external-link"></span></TestHistoryLink>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <h6 class="card-title">@result.Project</h6>
+                                <p class="card-text">Duration: @result.Duration</p>
 
-                        @if (result.Result == "Fail")
-                        {
-                            <h5>
-                                Failed in
-                                <BuildLink BuildId="@result.BuildId" Project="@result.AzDoProject">@FormatBuildInfo(result, includeDate: false)</BuildLink>
-                                <small class="text-muted">@result.QueueName</small>
-                            </h5>
-
-                            <h5>Duration: @result.Duration</h5>
-
-                            <h5>Failure Message</h5>
-                            <CodePanel>@result.Message</CodePanel>
-                            <h5>Stack Trace</h5>
-                            <CodePanel>@result.StackTrace</CodePanel>
-                        }
-                        else if (result.Result == "Skip")
-                        {
-                            <h5>
-                                Skipped in
-                                <BuildLink BuildId="@result.BuildId" Project="@result.AzDoProject">@FormatBuildInfo(result, includeDate: false)</BuildLink>
-                                <small class="text-muted">@result.QueueName</small>
-                            </h5>
-
-                            <h5>@result.SkipReason</h5>
-                        }
-                        else if (result.Result == "Pass")
-                        {
-                            <h5>
-                                Passed in
-                                <BuildLink BuildId="@result.BuildId" Project="@result.AzDoProject">@FormatBuildInfo(result, includeDate: false)</BuildLink>
-                                <small class="text-muted">@result.QueueName</small>
-                            </h5>
-
-                            <h5>Duration: @result.Duration</h5>
-                        }
+                                @if (result.Result == "Fail")
+                                {
+                                    <p><button class="btn btn-primary" @onclick="@(_ => state.ToggleDetail())">Failure Details</button></p>
+                                    <div class="card-deck collapse @(state.IsDetailExpanded ? "show" : null)">
+                                        <CodeCard BackgroundColor="Color.Warning" Header="Message">@result.Message</CodeCard>
+                                        <CodeCard BackgroundColor="Color.Warning" Header="Stack Trace">@result.StackTrace</CodeCard>
+                                    </div>
+                                }
+                                else if (result.Result == "Skip")
+                                {
+                                    <p><button class="btn btn-primary" @onclick="@(_ => state.ToggleDetail())">Skip Reason</button></p>
+                                    <div class="card card-body collapse @(state.IsDetailExpanded ? "show" : null)">
+                                        @result.SkipReason
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     </td>
                 </tr>
             }
@@ -123,7 +127,7 @@
 
     string GetRowClasses(TestResult result)
     {
-        if(QuarantineTracker.IsTestQuarantined(result))
+        if (QuarantineTracker.IsTestQuarantined(result))
         {
             return "table-secondary test-quarantined";
         }
@@ -134,6 +138,7 @@
     {
         public TestResult Data { get; set; }
         public bool IsExpanded { get; set; }
+        public bool IsDetailExpanded { get; set; }
 
         public RowState(TestResult data)
         {
@@ -144,6 +149,11 @@
         {
             data = Data;
             state = this;
+        }
+
+        public void ToggleDetail()
+        {
+            IsDetailExpanded = !IsDetailExpanded;
         }
 
         public void ToggleExpanded()

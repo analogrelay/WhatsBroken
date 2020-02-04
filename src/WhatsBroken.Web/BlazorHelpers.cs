@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Components;
+using System;
 using System.Collections.Generic;
 
 namespace WhatsBroken.Web
@@ -33,6 +34,24 @@ namespace WhatsBroken.Web
                 }
             }
             return string.Join('.', segments);
+        }
+
+        public static MarkupString GetQueueIcon(string queueName)
+        {
+            var segments = queueName.Split('.');
+            return new MarkupString(segments[0].ToLowerInvariant() switch
+            {
+                "ubuntu" => "<span class=\"icofont-brand-ubuntu\"></span>",
+                "debian" => "<span class=\"icofont-brand-debian\"></span>",
+                "raspbian" => "<span class=\"icofont-brand-debian\"></span>",
+                "sles" => "<span class=\"icofont-brand-opensuse\"></span>",
+                "windows" => "<span class=\"icofont-brand-windows\"></span>",
+                "osx" => "<span class=\"icofont-brand-apple\"></span>",
+                "redhat" => "<span class=\"icofont-brand-linux\"></span>",
+                "centos" => "<span class=\"icofont-brand-linux\"></span>",
+                "alpine" => "<span class=\"icofont-brand-linux\"></span>",
+                _ => ""
+            });
         }
     }
 }

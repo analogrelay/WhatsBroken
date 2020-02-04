@@ -1,9 +1,9 @@
 ﻿@if (!string.IsNullOrEmpty(BuildId) && !string.IsNullOrEmpty(Project))
 {
-    <a href="https://dev.azure.com/dnceng/@(Project)/_build/results?buildId=@(BuildId)&view=@ViewValue" target="_blank">@ChildContent <span class="oi oi-external-link"></span></a>
+    <a class="@CssClass" href="https://dev.azure.com/dnceng/@(Project)/_build/results?buildId=@(BuildId)&view=@ViewValue" target="_blank">@ChildContent <span class="icofont-external-link"></span></a>
 } else
 {
-    @ChildContent
+    <span class="@CssClass">@ChildContent</span>
 }
 
 @code {
@@ -18,6 +18,9 @@
 
     [Parameter]
     public BuildViewTab View { get; set; } = BuildViewTab.Results;
+
+    [Parameter]
+    public string? CssClass { get; set;}
 
     string ViewValue => View switch
     {

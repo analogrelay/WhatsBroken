@@ -1,0 +1,33 @@
+﻿@using BlazorStrap.Util
+
+<div class="card" style="max-width: 50vw">
+    <p class="card-header">
+        @if (HeaderTemplate != null)
+        {
+            @HeaderTemplate
+        }
+        else
+        {
+            @Header
+        }
+    </p>
+    <div class="card-body @BackgroundColorClass" style="overflow: auto">
+        <pre style="overflow: unset">@ChildContent</pre>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? Header { get; set; }
+
+    [Parameter]
+    public RenderFragment? HeaderTemplate { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public Color BackgroundColor { get; set; }
+
+    string BackgroundColorClass => BackgroundColor == Color.None ? "" : $"bg-{BackgroundColor.ToDescriptionString()}";
+}

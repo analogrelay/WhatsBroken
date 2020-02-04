@@ -8,8 +8,13 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>..\..</DockerfileContext>
 
+    <TypeScriptNoImplicitAny>True</TypeScriptNoImplicitAny>
+    <TypeScriptTarget>ES2017</TypeScriptTarget>
+    <TypeScriptSourceMap>True</TypeScriptSourceMap>
+
     <!-- Work around analyzer issue in Blazor -->
     <DisableImplicitComponentsAnalyzers>true</DisableImplicitComponentsAnalyzers>
+    <TypeScriptToolsVersion>3.7</TypeScriptToolsVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -40,10 +45,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Remove="Queries\GetQuarantineHistory.kql" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Dapper" Version="2.0.30" />
     <PackageReference Include="Humanizer" Version="2.7.9" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.AzureAD.UI" Version="3.1.0" />
@@ -51,6 +52,10 @@
     <PackageReference Include="Microsoft.Azure.SignalR" Version="1.1.1" />
     <PackageReference Include="Microsoft.Identity.Client" Version="4.8.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.AzureAppServices" Version="3.1.1" />
+    <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="3.7.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.3" />
     <PackageReference Include="BlazorStrap" Version="1.1.101" />
   </ItemGroup>

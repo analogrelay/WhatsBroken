@@ -1,7 +1,12 @@
 @import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+@import url('icofont/icofont.min.css');
 
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+code, pre {
+    font-family: 'Cascadia Code', 'Ubuntu Mono', SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace !important;
 }
 
 body {
@@ -40,7 +45,6 @@ table.table-datagrid {
 }
 
 .query-view-host .query-view-container {
-
 }
 
 .container-fluid {
@@ -54,6 +58,14 @@ table.table-datagrid {
     font-style: italic;
 }
 
-.test-quarantined .symbol {
-    font-style: normal;
+    .test-quarantined .symbol {
+        font-style: normal;
+    }
+
+code {
+    padding: .2em .4em;
+    margin: 0;
+    font-size: 85%;
+    background-color: rgba(27,31,35,.05);
+    border-radius: 3px;
 }
