@@ -29,6 +29,15 @@ namespace WhatsBroken.Web
             _logger = logger;
         }
 
+        public Task<IReadOnlyList<TestCase>> GetAllTestIdentitiesAsync(IEnumerable<string> repositories, CancellationToken cancellationToken = default)
+        {
+            _logger.LogDebug("Query: GetAllTestIdentitiesAsync({Repositories})", repositories);
+            return ExecuteQueryAsync<TestCase>(
+                GetQuery("GetAllTestIdentities"),
+                cancellationToken,
+                ("Repositories", string.Join(";", repositories)));
+        }
+
         public Task<IReadOnlyList<TestCase>> GetQuarantinedTestsAsync(IEnumerable<string> repositories, IEnumerable<string> branches, CancellationToken cancellationToken = default)
         {
             _logger.LogDebug("Query: GetQuarantinedTests({Repositories}, {Branches})", repositories, branches);

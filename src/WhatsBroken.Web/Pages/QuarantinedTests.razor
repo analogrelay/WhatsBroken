@@ -20,7 +20,7 @@
                     <tr class="test-quarantined">
                         <td title="@result.Project">@result.Project</td>
                         <td title="@result.Type"><span class="text-monospace">@CompactNamespace(result.Type)</span></td>
-                        <td title="@result.Method"><span class="text-monospace">@result.Method</span></td>
+                        <td title="@(result.Method)(@result.Arguments)"><span class="text-monospace">@(result.Method)(@result.Arguments)</span></td>
                     </tr>
                 }
             </tbody>
