@@ -1,5 +1,11 @@
 ﻿@page "/"
+@page "/failures"
+@page "/failures/repos/{RepoName}/branch/{Branch}"
+@page "/failures/repos/{RepoName}/pull/{PullRequestNumber}"
+@page "/failures/repos/{RepoName}/pulls/{PullRequestNumber}"
+
 @inject KustoContextFactory KustoContextFactory
+@inject NavigationManager Navigation
 
 <QueryView TResult="TestResult" OnLoadData="OnLoadDataAsync">
     <HeaderContent>
@@ -11,13 +17,40 @@
 </QueryView>
 
 @code {
+    [Parameter]
+    public string? Branch { get; set; }
+
+    [Parameter]
+    public string? RepoName { get; set; }
+
+    [Parameter]
+    public string? PullRequestNumber { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if(string.IsNullOrEmpty(RepoName))
+        {
+            // The user requested '/', redirect them
+            Navigation.NavigateTo("/failures/repos/aspnetcore/branch/master");
+        }
+    }
+
     async Task OnLoadDataAsync(QueryView<TestResult>.LoadDataEventArgs args)
     {
+        RepoName = string.IsNullOrEmpty(RepoName) ? "aspnetcore" : RepoName;
+        Branch = string.IsNullOrEmpty(Branch) ? "master" : Branch;
+
+        var branch = $"refs/heads/{Branch}";
+        if(!string.IsNullOrEmpty(PullRequestNumber))
+        {
+            branch = $"refs/pull/{PullRequestNumber}/merge";
+        }
+
         args.Results = await args.Context.GetFailingTestsAsync(
             DateTime.UtcNow.Date.AddDays(-7),
             DateTime.UtcNow,
-            new[] { "dotnet/aspnetcore", "dotnet-aspnetcore" },
-            new[] { "refs/heads/master" },
+            new[] { $"dotnet/{RepoName}", $"dotnet-{RepoName}" },
+            new[] { branch },
             includeQuarantined: false);
     }
 }

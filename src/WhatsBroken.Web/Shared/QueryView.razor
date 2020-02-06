@@ -50,6 +50,10 @@
             {
                 @NoResultsTemplate
             }
+            else if(!_firstLoadComplete)
+            {
+                <span>Loading...</span>
+            }
             else
             {
                 <span>No results!</span>
@@ -82,6 +86,7 @@
     // We know Blazor will call our initialization code before we can dereference this.
     KustoContext _context = default!;
     bool _isLoading;
+    bool _firstLoadComplete;
     IReadOnlyList<TResult> _results = Array.Empty<TResult>();
 
     protected override async Task OnInitializedAsync()
@@ -95,6 +100,7 @@
         _isLoading = true;
         var args = new LoadDataEventArgs(_context);
         await OnLoadData.InvokeAsync(args);
+        _firstLoadComplete = true;
         _results = args.Results;
         _isLoading = false;
     }
