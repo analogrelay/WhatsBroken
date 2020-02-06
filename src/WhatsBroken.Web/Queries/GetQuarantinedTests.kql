@@ -25,6 +25,6 @@ Jobs
 | where (Traits contains "Flaky") or (Traits contains "Quarantine")
 | extend NameSegments = split(WorkItemFriendlyName, "--")
 | extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1])
-| distinct Project, Type1, Method
+| distinct Project, Type1, Method, Arguments, ArgumentHash
 | project-rename Type = Type1
-| sort by Project, Type, Method
+| sort by Project, Type, Method, Arguments, ArgumentHash

@@ -1,4 +1,4 @@
-﻿@inject QuarantineTracker QuarantineTracker
+﻿@inject BackgroundDataStore QuarantineTracker
 
 @if (Results is object)
 {
@@ -36,9 +36,22 @@
                                 break;
                         }
 
+                        @if(result.BuildDefinition == "aspnetcore-ci")
+                        {
+                            <span title="Public Build" class="icofont-eye"></span>
+                        }
+                        else if(result.BuildDefinition == "aspnetcore-ci-official")
+                        {
+                            <span title="Internal Build" class="icofont-eye-blocked"></span>
+                        }
+                        else if(string.IsNullOrEmpty(result.BuildDefinition))
+                        {
+                            <span title="Build Unknown" class="icofont-question-circle"></span>
+                        }
+
                         @if (QuarantineTracker.IsTestQuarantined(result))
                         {
-                            <span title="Quarantined" class="icofont-bandage"></span>
+                            <span title="Quarantined" class="symbol">☢</span>
                         }
                     </td>
                     <td>

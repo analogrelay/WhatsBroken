@@ -1,0 +1,18 @@
+﻿// *****************************************************
+// Gets a list of all distinct test cases in the dataset
+// *****************************************************
+
+declare query_parameters(Repositories: string = "dotnet/aspnetcore;dotnet-aspnetcore");
+
+let repositories = datatable(A: string)[""] | extend Repos = split(Repositories, ";") | mv-expand Repos | project Repos;
+
+Jobs
+| where Repository in (repositories)
+| join kind = inner(WorkItems) on JobId
+| join kind = inner(TestResults) on WorkItemId
+| where WorkItemFriendlyName contains "--"
+| extend NameSegments = split(WorkItemFriendlyName, "--")
+| extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1])
+| project Project, Type = Type1, Method, Arguments, ArgumentHash
+| distinct Project, Type, Method, Arguments, ArgumentHash
+| sort by Project, Type, Method, ArgumentHash

@@ -29,20 +29,33 @@ namespace WhatsBroken.Web
             _logger = logger;
         }
 
-        public Task<IReadOnlyList<TestCase>> GetQuarantinedTestsAsync(IEnumerable<string> repositories, IEnumerable<string> branches, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<TestCase>> GetAllTestIdentitiesAsync(IEnumerable<string> repositories, CancellationToken cancellationToken = default)
         {
-            _logger.LogDebug("Query: GetQuarantinedTests({Repositories}, {Branches})", repositories, branches);
-            return ExecuteQueryAsync<TestCase>(
+            _logger.LogDebug("Sending Query: GetAllTestIdentitiesAsync([{Repositories}])", repositories);
+            var results = await ExecuteQueryAsync<TestCase>(
+                GetQuery("GetAllTestIdentities"),
+                cancellationToken,
+                ("Repositories", string.Join(";", repositories)));
+            _logger.LogDebug("Query Complete: GetAllTestIdentitiesAsync([{Repositories}])", repositories);
+            return results;
+        }
+
+        public async Task<IReadOnlyList<TestCase>> GetQuarantinedTestsAsync(IEnumerable<string> repositories, IEnumerable<string> branches, CancellationToken cancellationToken = default)
+        {
+            _logger.LogDebug("Sending Query: GetQuarantinedTests([{Repositories}], [{Branches}])", repositories, branches);
+            var results = await ExecuteQueryAsync<TestCase>(
                 GetQuery("GetQuarantinedTests"),
                 cancellationToken,
                 ("Repositories", string.Join(";", repositories)),
                 ("Branches", string.Join(";", branches)));
+            _logger.LogDebug("Query Complete: GetQuarantinedTests([{Repositories}], [{Branches}])", repositories, branches);
+            return results;
         }
 
-        public Task<IReadOnlyList<TestResult>> GetRunHistoryAsync(string? project, string? type, string? method, string? argumentHash, int limit = 1000, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<TestResult>> GetRunHistoryAsync(string? project, string? type, string? method, string? argumentHash, int limit = 1000, CancellationToken cancellationToken = default)
         {
-            _logger.LogDebug("Query: GetRunHistory({Project}, {Type}, {Method}, {ArgumentHash}, {Limit})", project, type, method, argumentHash, limit);
-            return ExecuteQueryAsync<TestResult>(
+            _logger.LogDebug("Sending Query: GetRunHistory({Project}, {Type}, {Method}, {ArgumentHash}, {Limit})", project, type, method, argumentHash, limit);
+            var results = await ExecuteQueryAsync<TestResult>(
                 GetQuery("GetRunHistory"),
                 cancellationToken,
                 ("TestProject", project),
@@ -50,12 +63,14 @@ namespace WhatsBroken.Web
                 ("TestMethod", method),
                 ("TestArgumentHash", argumentHash ?? string.Empty),
                 ("Limit", limit));
+            _logger.LogDebug("Query Complete: GetRunHistory({Project}, {Type}, {Method}, {ArgumentHash}, {Limit})", project, type, method, argumentHash, limit);
+            return results;
         }
 
-        public Task<IReadOnlyList<TestResult>> GetFailingTestsAsync(DateTime startUtc, DateTime endUtc, IEnumerable<string> repositories, IEnumerable<string> branches, bool includeQuarantined, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<TestResult>> GetFailingTestsAsync(DateTime startUtc, DateTime endUtc, IEnumerable<string> repositories, IEnumerable<string> branches, bool includeQuarantined, CancellationToken cancellationToken = default)
         {
-            _logger.LogDebug("Query: GetFailingTests({StartUtc}, {EndUtc}, {Repositories}, {Branches})", startUtc, endUtc, repositories, branches);
-            return ExecuteQueryAsync<TestResult>(
+            _logger.LogDebug("Sending Query: GetFailingTests({StartUtc}, {EndUtc}, [{Repositories}], [{Branches}])", startUtc, endUtc, repositories, branches);
+            var results = await ExecuteQueryAsync<TestResult>(
                 GetQuery("GetFailingTests"),
                 cancellationToken,
                 ("Start", startUtc),
@@ -63,6 +78,8 @@ namespace WhatsBroken.Web
                 ("Repositories", string.Join(";", repositories)),
                 ("Branches", string.Join(";", branches)),
                 ("IncludeQuarantined", includeQuarantined));
+            _logger.LogDebug("Query Complete: GetFailingTests({StartUtc}, {EndUtc}, [{Repositories}], [{Branches}])", startUtc, endUtc, repositories, branches);
+            return results;
         }
 
         async Task<IReadOnlyList<T>> ExecuteQueryAsync<T>(string query, CancellationToken cancellationToken, params (string Name, object? Value)[] parameters)
