@@ -52,4 +52,5 @@ TestResults
     IsQuarantined = coalesce(IsQuarantined, bool(false)), 
     SkipReason = Reason, 
     Project, 
-    Framework
+    Framework,
+    BuildId
