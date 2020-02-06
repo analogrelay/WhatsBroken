@@ -36,17 +36,17 @@
                                 break;
                         }
 
-                        @if(result.BuildDefinition == "aspnetcore-ci")
-                        {
-                            <span title="Public Build" class="icofont-eye"></span>
-                        }
-                        else if(result.BuildDefinition == "aspnetcore-ci-official")
+                        @if(result.BuildDefinition == "aspnetcore-ci-official")
                         {
                             <span title="Internal Build" class="icofont-eye-blocked"></span>
                         }
                         else if(string.IsNullOrEmpty(result.BuildDefinition))
                         {
                             <span title="Build Unknown" class="icofont-question-circle"></span>
+                        }
+                        else if(result.BuildDefinition == "aspnetcore-ci")
+                        {
+                            <span title="Public Build" class="icofont-eye"></span>
                         }
 
                         @if (QuarantineTracker.IsTestQuarantined(result))
