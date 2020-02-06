@@ -4,7 +4,7 @@
 
 declare query_parameters(Repositories: string = "dotnet/aspnetcore;dotnet-aspnetcore");
 
-let repositories = datatable(A: string)[""] | extend Repos = split(Repositories, ";") | mv - expand Repos | project Repos;
+let repositories = datatable(A: string)[""] | extend Repos = split(Repositories, ";") | mv-expand Repos | project Repos;
 
 Jobs
 | where Repository in (repositories)

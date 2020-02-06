@@ -5,88 +5,92 @@
 
 <h1>Find run history for a test</h1>
 
-@if(!string.IsNullOrEmpty(Alert))
-{
-    <div class="alert alert-danger" role="alert">
-        @Alert
-    </div>
-}
-else
-{
-    <form>
-        @if (Collection != null)
-        {
-            <div class="input-group">
-                <div class="input-group-prepend">
-                    <span id="projectLabel" class="input-group-text">Project</span>
-                </div>
-                <select id="projectDropdown" aria-describedby="projectLabel" @onchange="ProjectSelectionChanged">
-                    <option selected>Choose a project...</option>
-                    @foreach (var project in Collection!.Projects.Values.OrderBy(v => v.Name))
-                    {
-                        <option value="@project.Name">@project.Name</option>
-                    }
-                </select>
-            </div>
-        }
-        @if (SelectedProject != null)
-        {
-            <div class="input-group">
-                <div class="input-group-prepend">
-                    <span id="typeLabel" class="input-group-text">Type</span>
-                </div>
-                <select id="typeDropdown" aria-describedby="typeLabel" @onchange="TypeSelectionChanged">
-                    <option selected>Choose a type...</option>
-                    @foreach (var type in SelectedProject!.Types.Values.OrderBy(v => v.Name))
-                    {
-                        <option value="@type.Name">@type.Name</option>
-                    }
-                </select>
-            </div>
-        }
+<LoadingPanel IsVisible="@(!TestCollectionHasLoaded)" />
 
-        @if (SelectedType != null)
-        {
-            <div class="input-group">
-                <div class="input-group-prepend">
-                    <span id="methodLabel" class="input-group-text">Method</span>
+<div hidden="@(!TestCollectionHasLoaded)">
+    @if (!string.IsNullOrEmpty(Alert))
+    {
+        <div class="alert alert-danger" role="alert">
+            @Alert
+        </div>
+    }
+    else
+    {
+        <form>
+            @if (Collection != null)
+            {
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span id="projectLabel" class="input-group-text">Project</span>
+                        </div>
+                        <select id="projectDropdown" aria-describedby="projectLabel" @onchange="ProjectSelectionChanged">
+                            <option selected>Choose a project...</option>
+                            @foreach (var project in Collection!.Projects.Values.OrderBy(v => v.Name))
+                            {
+                                <option value="@project.Name">@project.Name</option>
+                            }
+                        </select>
+                    </div>
                 </div>
-                <select id="methodDropdown" aria-describedby="methodLabel" @onchange="MethodSelectionChanged">
-                    <option selected>Choose a method...</option>
-                    @foreach (var type in SelectedType!.Methods.Values.OrderBy(v => v.Name))
-                    {
-                        <option value="@type.Name">@type.Name</option>
-                    }
-                </select>
-            </div>
-        }
-        @if (SelectedMethod != null)
-        {
-            <div class="input-group">
-                <div class="input-group-prepend">
-                    <span id="argumentsLabel" class="input-group-text">Arguments</span>
+            }
+            @if (SelectedProject != null)
+            {
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span id="typeLabel" class="input-group-text">Type</span>
+                        </div>
+                        <select id="typeDropdown" aria-describedby="typeLabel" @onchange="TypeSelectionChanged">
+                            <option selected>Choose a type...</option>
+                            @foreach (var type in SelectedProject!.Types.Values.OrderBy(v => v.Name))
+                            {
+                                <option value="@type.Name">@type.Name</option>
+                            }
+                        </select>
+                    </div>
                 </div>
-                <select id="argumentsDropdown" aria-describedby="argumentsLabel" @onchange="CaseSelectionChanged">
-                    @if (SelectedMethod.Cases.Count == 1)
-                    {
-                        var testCase = SelectedMethod.Cases.Values.First();
-                        <option selected value="@testCase.ArgumentHash">@testCase.Arguments</option>
-                    }
-                    else
-                    {
-                        <option selected>Choose a test case...</option>
-                        @foreach (var testCase in SelectedMethod!.Cases.Values.OrderBy(v => v.ArgumentHash))
-                        {
-                            <option value="@testCase.ArgumentHash">@testCase.Arguments</option>
-                        }
-                    }
-                </select>
-            </div>
-        }
+            }
 
-        <a href="@GetHistoryLink(SelectedCase)" class="btn btn-primary @(SelectedCase == null ? "disabled" : null)">Get History...</a>
-    </form>
-}
+            @if (SelectedType != null)
+            {
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span id="methodLabel" class="input-group-text">Method</span>
+                        </div>
+                        <select id="methodDropdown" aria-describedby="methodLabel" @onchange="MethodSelectionChanged">
+                            <option selected>Choose a method...</option>
+                            @foreach (var type in SelectedType!.Methods.Values.OrderBy(v => v.Name))
+                            {
+                                <option value="@type.Name">@type.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            }
+            @if (SelectedMethod != null && SelectedMethod.Cases.Count > 1)
+            {
+                <div class="form-group">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span id="argumentsLabel" class="input-group-text">Arguments</span>
+                        </div>
+                        <select id="argumentsDropdown" aria-describedby="argumentsLabel" @onchange="CaseSelectionChanged">
+                            <option selected>Choose a test case...</option>
+                            @foreach (var testCase in SelectedMethod!.Cases.Values.OrderBy(v => v.ArgumentHash))
+                            {
+                                <option value="@testCase.ArgumentHash">@testCase.Arguments</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            }
+
+            <a href="@GetHistoryLink(SelectedCase)" class="btn btn-primary @(SelectedCase == null ? "disabled" : null)">Get History...</a>
+        </form>
+    }
+</div>
 
 @code {
     TestCollection? Collection { get; set; }
@@ -96,10 +100,14 @@ else
     TestCase? SelectedCase { get; set; }
     string? Alert { get; set; }
 
-    protected override void OnInitialized()
+    bool TestCollectionHasLoaded { get; set; }
+
+    protected override async Task OnInitializedAsync()
     {
+        await BackgroundData.TestCollectionLoaded;
+        TestCollectionHasLoaded = true;
         Collection = BackgroundData.GetTestCollection();
-        if(Collection.AllTests.Count == 0)
+        if (Collection.AllTests.Count == 0)
         {
             Alert = "The test list has not been loaded yet (it loads in the background). Please refresh this page in a minute or so.";
         }
@@ -107,7 +115,7 @@ else
 
     string GetHistoryLink(TestCase? testCase)
     {
-        if(testCase == null)
+        if (testCase == null)
         {
             return "#";
         }
@@ -120,14 +128,14 @@ else
     void ProjectSelectionChanged(ChangeEventArgs args)
     {
         var key = args.Value?.ToString();
-        if(string.IsNullOrEmpty(key))
+        if (string.IsNullOrEmpty(key))
         {
             SelectedProject = null;
             SelectedType = null;
             SelectedMethod = null;
             SelectedCase = null;
         }
-        else if(Collection != null && Collection.Projects.TryGetValue(key, out var project))
+        else if (Collection != null && Collection.Projects.TryGetValue(key, out var project))
         {
             SelectedProject = project;
             SelectedType = project.Types.Count == 1 ? project.Types.Values.First() : null;
@@ -143,13 +151,13 @@ else
     void TypeSelectionChanged(ChangeEventArgs args)
     {
         var key = args.Value?.ToString();
-        if(string.IsNullOrEmpty(key))
+        if (string.IsNullOrEmpty(key))
         {
             SelectedType = null;
             SelectedMethod = null;
             SelectedCase = null;
         }
-        else if(SelectedProject != null && SelectedProject.Types.TryGetValue(key, out var type))
+        else if (SelectedProject != null && SelectedProject.Types.TryGetValue(key, out var type))
         {
             SelectedType = type;
             SelectedMethod = SelectedType?.Methods.Count == 1 ? SelectedType.Methods.Values.First() : null;
@@ -165,12 +173,12 @@ else
     void MethodSelectionChanged(ChangeEventArgs args)
     {
         var key = args.Value?.ToString();
-        if(string.IsNullOrEmpty(key))
+        if (string.IsNullOrEmpty(key))
         {
             SelectedMethod = null;
             SelectedCase = null;
         }
-        else if(SelectedType != null && SelectedType.Methods.TryGetValue(key, out var method))
+        else if (SelectedType != null && SelectedType.Methods.TryGetValue(key, out var method))
         {
             SelectedMethod = method;
             SelectedCase = SelectedMethod?.Cases.Count == 1 ? SelectedMethod.Cases.Values.First() : null;
@@ -184,11 +192,11 @@ else
     void CaseSelectionChanged(ChangeEventArgs args)
     {
         var key = args.Value?.ToString();
-        if(string.IsNullOrEmpty(key))
+        if (string.IsNullOrEmpty(key))
         {
             SelectedCase = null;
         }
-        else if(SelectedMethod != null && SelectedMethod.Cases.TryGetValue(key, out var testCase))
+        else if (SelectedMethod != null && SelectedMethod.Cases.TryGetValue(key, out var testCase))
         {
             SelectedCase = testCase;
         }

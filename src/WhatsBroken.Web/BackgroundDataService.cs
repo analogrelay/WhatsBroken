@@ -21,19 +21,19 @@ namespace WhatsBroken.Web
         TestCollection _testCollection = new TestCollection();
         readonly ILogger<BackgroundDataStore> _logger;
 
+        readonly TaskCompletionSource<object?> _quarantinedTestLoaded = new TaskCompletionSource<object?>();
+        readonly TaskCompletionSource<object?> _testCollectionLoaded = new TaskCompletionSource<object?>();
+
         public BackgroundDataStore(ILogger<BackgroundDataStore> logger)
         {
             _logger = logger;
         }
 
+        public Task QuarantinedTestsLoaded => _quarantinedTestLoaded.Task;
+        public Task TestCollectionLoaded => _testCollectionLoaded.Task;
+
         // This is a method because we want to encourage callers to take a local copy to avoid it being swapped out from under them.
         public TestCollection GetTestCollection() => _testCollection;
-
-        public void UpdateQuarantinedTests(IEnumerable<TestCase> testIdentities)
-        {
-            var newSet = new HashSet<TestCase>(testIdentities);
-            Interlocked.Exchange(ref _quarantinedTests, newSet);
-        }
 
         public bool IsTestQuarantined(TestResult result) => IsTestQuarantined(new TestCase(result.Project, result.Type, result.Method, result.Arguments, result.ArgumentHash));
         public bool IsTestQuarantined(TestCase identity)
@@ -42,8 +42,16 @@ namespace WhatsBroken.Web
             return localSet.Contains(identity);
         }
 
+        public void UpdateQuarantinedTests(IEnumerable<TestCase> testIdentities)
+        {
+            _quarantinedTestLoaded.TrySetResult(null);
+            var newSet = new HashSet<TestCase>(testIdentities);
+            Interlocked.Exchange(ref _quarantinedTests, newSet);
+        }
+
         public void UpdateTestCollection(TestCollection testCollection)
         {
+            _testCollectionLoaded.TrySetResult(null);
             Interlocked.Exchange(ref _testCollection, testCollection);
         }
     }
