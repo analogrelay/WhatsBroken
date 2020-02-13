@@ -1,14 +1,21 @@
 ﻿@using System.Net
 
-@if(Result != null)
+@if (Result != null)
 {
     Project = Result.Project;
     Type = Result.Type;
     Method = Result.Method;
     ArgumentHash = Result.ArgumentHash;
 }
+else if (Case != null)
+{
+    Project = Case.Project;
+    Type = Case.Type;
+    Method = Case.Method;
+    ArgumentHash = Case.ArgumentHash;
+}
 
-@{ 
+@{
     var encodedHash = string.IsNullOrEmpty(ArgumentHash) ? null : WebUtility.UrlEncode(ArgumentHash);
 }
 
@@ -27,7 +34,7 @@
 @code {
     [Parameter]
     public string? Project { get; set; }
-    
+
     [Parameter]
     public string? Type { get; set; }
 
@@ -39,6 +46,9 @@
 
     [Parameter]
     public TestResult? Result { get; set; }
+
+    [Parameter]
+    public TestCase? Case { get; set; }
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }

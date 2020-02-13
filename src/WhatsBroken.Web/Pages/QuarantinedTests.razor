@@ -9,6 +9,7 @@
         <table class="table table-sm table-responsive table-striped table-datagrid">
             <thead>
                 <tr>
+                    <th><span class="sr-only">Status</span></th>
                     <th scope="col">Project</th>
                     <th scope="col">Type</th>
                     <th scope="col">Method</th>
@@ -17,10 +18,17 @@
             <tbody>
                 @foreach(var result in results)
                 {
-                    <tr class="test-quarantined">
+                    <tr class="table-secondary">
+                        <td>
+                            <span title="Quarantined" class="symbol">☢</span>
+                        </td>
                         <td title="@result.Project">@result.Project</td>
-                        <td title="@result.Type"><span class="text-monospace">@CompactNamespace(result.Type)</span></td>
-                        <td title="@(result.Method)(@result.Arguments)"><span class="text-monospace">@(result.Method)(@result.Arguments)</span></td>
+                        <td><code title="@result.Type">@CompactNamespace(result.Type)</code></td>
+                        <td title="@(result.Method)(@result.Arguments)">
+                            <TestHistoryLink Case="result">
+                                <code title="@(result.Method)(@result.Arguments)">@(result.Method)(@result.Arguments)</code>
+                            </TestHistoryLink>
+                        </td>
                     </tr>
                 }
             </tbody>
