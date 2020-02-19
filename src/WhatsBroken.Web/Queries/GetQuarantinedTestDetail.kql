@@ -1,0 +1,34 @@
+﻿// **********************************************************
+// Dumps a list of quarantined tests in the most recent build
+// **********************************************************
+
+let start = startofday(now(), -14);
+let end = now();
+
+let mostRecentBuilds = materialize(Jobs
+| where Repository in ("dotnet/aspnetcore", "dotnet-aspnetcore") and Branch == "refs/heads/master" and Finished between (start..end)
+| extend ParsedProps = parse_json(Properties)
+| extend BuildNumber = tostring(ParsedProps.buildNumber), BuildDefinition = tostring(ParsedProps.buildDefinition), RunType = tostring(ParsedProps.runType)
+| where RunType == "quarantined" and not(isempty(BuildNumber))
+| project JobId, Finished, BuildNumber, BuildDefinition);
+
+let quarantinedTests = materialize(mostRecentBuilds
+| top 1 by Finished desc
+| join kind = inner (WorkItems) on JobId
+| project WorkItemId
+| join kind = inner (TestResults) on WorkItemId
+| project WorkItemFriendlyName, Traits, Type, Method, Arguments, ArgumentHash
+| where (Traits contains "Flaky") or (Traits contains "Quarantine")
+| extend NameSegments = split(WorkItemFriendlyName, "--")
+| extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1]));
+
+mostRecentBuilds
+| join kind = inner (WorkItems) on JobId
+| join kind = inner (TestResults) on WorkItemId
+| join kind = inner (quarantinedTests) on WorkItemFriendlyName, Type, Method, ArgumentHash
+| extend NameSegments = split(WorkItemFriendlyName, "--")
+| extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1])
+| summarize PassingRuns = countif(Result == "Pass"), FailingRuns = countif(Result == "Fail"), TotalRuns = count() by Project, Type, Method, Arguments, ArgumentHash
+| extend ["Passing Rate"] = todouble(PassingRuns) / todouble(TotalRuns)
+| sort by ["Passing Rate"] desc
+| extend ["Passing %"] = strcat(["Passing Rate"] * 100, "%")
