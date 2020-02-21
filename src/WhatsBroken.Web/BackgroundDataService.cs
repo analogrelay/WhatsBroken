@@ -17,6 +17,7 @@ namespace WhatsBroken.Web
     /// </summary>
     public class BackgroundDataStore
     {
+        IReadOnlyList<QuarantineHistory> _quarantineHistories = Array.Empty<QuarantineHistory>();
         ISet<TestCase> _quarantinedTests = new HashSet<TestCase>();
         TestCollection _testCollection = new TestCollection();
         readonly ILogger<BackgroundDataStore> _logger;
@@ -42,11 +43,14 @@ namespace WhatsBroken.Web
             return localSet.Contains(identity);
         }
 
-        public void UpdateQuarantinedTests(IEnumerable<TestCase> testIdentities)
+        public void UpdateQuarantinedTests(IEnumerable<QuarantineHistory> quarantinedTests)
         {
-            _quarantinedTestLoaded.TrySetResult(null);
-            var newSet = new HashSet<TestCase>(testIdentities);
+            var newSet = new HashSet<TestCase>(quarantinedTests.Select(q => q.TestCase));
             Interlocked.Exchange(ref _quarantinedTests, newSet);
+            var newHistories = new List<QuarantineHistory>(quarantinedTests);
+            Interlocked.Exchange(ref _quarantineHistories, newHistories);
+
+            _quarantinedTestLoaded.TrySetResult(null);
         }
 
         public void UpdateTestCollection(TestCollection testCollection)
@@ -54,6 +58,13 @@ namespace WhatsBroken.Web
             _testCollectionLoaded.TrySetResult(null);
             Interlocked.Exchange(ref _testCollection, testCollection);
         }
+
+        public async ValueTask<IReadOnlyList<QuarantineHistory>> GetQuarantineHistoriesAsync()
+        {
+            await _quarantinedTestLoaded.Task;
+            return _quarantineHistories;
+        }
+
     }
 
     public class BackgroundDataService : BackgroundService
@@ -133,7 +144,7 @@ namespace WhatsBroken.Web
         {
             _logger.LogInformation("Reloading quarantined tests lists...");
 
-            var list = await context.GetQuarantinedTestsAsync(
+            var list = await context.GetQuarantineHistoryAsync(
                 new[] { "dotnet/aspnetcore", "dotnet-aspnetcore" },
                 new[] { "refs/heads/master" },
                 cancellationToken);

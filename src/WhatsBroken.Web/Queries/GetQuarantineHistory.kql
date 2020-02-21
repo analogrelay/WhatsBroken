@@ -1,68 +1,46 @@
-﻿// *****************************************
-// Gets the quarantine history for the test.
-// *****************************************
-declare query_parameters (
-    TestProject: string = "dotnet-microsoft.openapi.Tests", 
-    TestType: string = "Microsoft.DotNet.OpenApi.Add.Tests.OpenApiAddFileTests",
-    TestMethod: string = "OpenApi_Add_MultipleTimes_OnlyOneReference",
-    TestArgumentHash: string = "*",
-    Limit: int = 1000);
+﻿// **********************************************************
+// Dumps a list of quarantined tests in the most recent build
+// **********************************************************
 
-// Grab the most recent unquarantined run of this test
-let lastUnquarantinedDate = toscalar(TestResults
-| where Type == TestType and Method == TestMethod and (TestArgumentHash == "*" or ArgumentHash == TestArgumentHash)
-| extend NameSegments = split(WorkItemFriendlyName, "--")
-| extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1]), RunTypeFromName = iif(array_length(NameSegments) > 2, NameSegments[2], "")
-| where Project == TestProject
-| project-away NameSegments
-| join (WorkItems) on WorkItemId
-| join (Jobs) on JobId
-| top Limit by Finished desc
-| where not((Traits contains "Flaky") or (Traits contains "Quarantine"))
-| project Finished
-| take 1);
+declare query_parameters(Repositories: string = "dotnet/aspnetcore;dotnet-aspnetcore", Branches:string = "refs/heads/master");
 
-// Now compute over all the tests since then
-TestResults
-| where Type == TestType and Method == TestMethod and (TestArgumentHash == "*" or ArgumentHash == TestArgumentHash)
-| extend NameSegments = split(WorkItemFriendlyName, "--")
-| extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1]), RunTypeFromName = iif(array_length(NameSegments) > 2, NameSegments[2], "")
-| where Project == TestProject
-| project-away NameSegments
-| join (WorkItems) on WorkItemId
-| join (Jobs) on JobId
-| extend IsQuarantined = (Traits contains "Flaky") or (Traits contains "Quarantine")
-| where IsQuarantined and Finished > lastUnquarantinedDate
+let repositories = datatable (A: string) [""] | extend Repos = split(Repositories, ";") | mv-expand Repos | project Repos;
+let branchFilter = datatable (A: string) [""] | extend Branches = split(Branches, ";") | mv-expand Branches | where not(isempty(Branches)) | project Branches;
+
+let start = startofday(now(), -30);
+let end = now();
+
+let mostRecentBuilds = materialize(Jobs
+| where Repository in ("dotnet/aspnetcore", "dotnet-aspnetcore") and Branch == "refs/heads/master" and Finished between (start..end)
 | extend ParsedProps = parse_json(Properties)
-| extend 
-    RunTypeFromProps = tostring(ParsedProps.runType), 
-    BuildNumber = tostring(ParsedProps.buildNumber), 
-    BuildDefinition = tostring(ParsedProps.buildDefinition),
-    BuildId = tostring(ParsedProps.buildId),
-    AzDoProject = tostring(ParsedProps.azdoProject)
-| extend RunType = coalesce(RunTypeFromName, RunTypeFromProps)
-| project 
-    JobId = coalesce(JobId, 0), 
-    WorkItemId = coalesce(WorkItemId, 0),
-    BuildNumber,
-    BuildDefinition,
-    RunType,
-    Started = Started1, 
-    Finished = Finished1, 
-    ConsoleUri, 
-    Uri, 
-    QueueName = QueueName1, 
-    Type, 
-    Method, 
-    Arguments, 
-    ArgumentHash, 
-    Result, 
-    Duration, 
-    Exception, 
-    Message, 
-    StackTrace, 
-    Traits, 
-    IsQuarantined = coalesce(IsQuarantined, bool(false)), 
-    SkipReason = Reason, 
-    Project, 
-    Framework
+| extend BuildNumber = tostring(ParsedProps.buildNumber), BuildDefinition = tostring(ParsedProps.buildDefinition), RunType = tostring(ParsedProps.runType)
+| where RunType == "quarantined" and not(isempty(BuildNumber))
+| project JobId, Finished, BuildNumber, BuildDefinition);
+
+let quarantinedTests = materialize(mostRecentBuilds
+| top 1 by Finished desc
+| join kind = inner (WorkItems) on JobId
+| project WorkItemId
+| join kind = inner (TestResults) on WorkItemId
+| project WorkItemFriendlyName, Traits, Type, Method, Arguments, ArgumentHash
+| where (Traits contains "Flaky") or (Traits contains "Quarantine")
+| extend NameSegments = split(WorkItemFriendlyName, "--")
+| extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1]));
+
+mostRecentBuilds
+| join kind = inner (WorkItems) on JobId
+| join kind = inner (TestResults) on WorkItemId
+| join kind = inner (quarantinedTests) on WorkItemFriendlyName, Type, Method, ArgumentHash
+| extend NameSegments = split(WorkItemFriendlyName, "--")
+| extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1])
+| summarize 
+    PassingRuns = countif(Result == "Pass"), 
+    FailingRuns = countif(Result == "Fail"),
+    TotalRuns = count(),
+    FirstRun = min(Finished),
+    LastRun = max(Finished),
+    FirstFailure = minif(Finished, Result == "Fail"),
+    LastFailure = maxif(Finished, Result == "Fail")
+    by Project, Type, Method, Arguments, ArgumentHash
+| extend PassingRate = todouble(PassingRuns) / todouble(TotalRuns)
+| sort by PassingRate asc, TotalRuns asc

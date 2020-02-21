@@ -5,7 +5,11 @@
 
 <h1>Find run history for a test</h1>
 
-<LoadingPanel IsVisible="@(!TestCollectionHasLoaded)" />
+<LoadingPanel IsVisible="@(!TestCollectionHasLoaded)">
+    <LoadingContent>
+        <div class="alert alert-warning">This can take a few minutes to load...</div>
+    </LoadingContent>
+</LoadingPanel>
 
 <div hidden="@(!TestCollectionHasLoaded)">
     @if (!string.IsNullOrEmpty(Alert))

@@ -1,11 +1,15 @@
-﻿<small hidden="@(!IsVisible)" class="text-muted">
+﻿<div hidden="@(!IsVisible)" class="text-muted">
     <div class="spinner-grow text-primary" role="status">
         <span class="sr-only">Loading...</span>
     </div>
     Exploring the ocean with Jack Kusto ...
-</small>
+    @LoadingContent
+</div>
 
 @code {
     [Parameter]
     public bool IsVisible { get; set; }
+
+    [Parameter]
+    public RenderFragment? LoadingContent { get; set; }
 }

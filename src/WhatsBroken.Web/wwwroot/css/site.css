@@ -54,14 +54,6 @@ table.table-datagrid {
     overflow-y: auto;
 }
 
-.test-quarantined {
-    font-style: italic;
-}
-
-    .test-quarantined .symbol {
-        font-style: normal;
-    }
-
 code {
     padding: .2em .4em;
     margin: 0;

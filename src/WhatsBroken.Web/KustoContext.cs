@@ -82,6 +82,18 @@ namespace WhatsBroken.Web
             return results;
         }
 
+        public async Task<IReadOnlyList<QuarantineHistory>> GetQuarantineHistoryAsync(IEnumerable<string> repositories, IEnumerable<string> branches, CancellationToken cancellationToken = default)
+        {
+            _logger.LogDebug("Sending Query: GetQuarantineHistory([{Repositories}], [{Branches}])", repositories, branches);
+            var results = await ExecuteQueryAsync<QuarantineHistory>(
+                GetQuery("GetQuarantineHistory"),
+                cancellationToken,
+                ("Repositories", string.Join(";", repositories)),
+                ("Branches", string.Join(";", branches)));
+            _logger.LogDebug("Query Complete: GetQuarantineHistory([{Repositories}], [{Branches}])", repositories, branches);
+            return results;
+        }
+
         async Task<IReadOnlyList<T>> ExecuteQueryAsync<T>(string query, CancellationToken cancellationToken, params (string Name, object? Value)[] parameters)
         {
             // Yes yes, I know. We log things here though and can't return a task :(.

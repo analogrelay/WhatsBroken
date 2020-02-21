@@ -4,7 +4,7 @@
 <div class="pt-3 clearfix">
     <div class="mb-3 datagrid-tools-panel">
         @ToolsPanel
-        <BSButton OnClick="@(_ => ReloadAsync())" IsOutline="true" Color="Color.Info">Refresh</BSButton>
+        <BSButton OnClick="@(_ => ReloadAsync(isReload: true))" IsOutline="true" Color="Color.Info">Refresh</BSButton>
         <BSButton Id="openLegendButton" OnClick="@(_ => LegendIsOpen = !LegendIsOpen)" IsOutline="true" Color="Color.Info">Legend</BSButton>
         <BSPopover Target="openLegendButton" IsOpen="@LegendIsOpen" Placement="Placement.Left">
             <BSPopoverHeader>Legend</BSPopoverHeader>
@@ -36,7 +36,12 @@
         </BSPopover>
     </div>
 
-    <h1 title="@HeaderTitle">@HeaderContent <LoadingPanel IsVisible="@_isLoading" /></h1>
+    <h1 title="@HeaderTitle">@HeaderContent</h1>
+     <LoadingPanel IsVisible="@_isLoading">
+         <LoadingContent>
+             @LoadingContent
+         </LoadingContent>
+     </LoadingPanel>
 </div>
 
 <div class="pt-2">
@@ -70,6 +75,9 @@
     public string? HeaderTitle { get; set; }
 
     [Parameter]
+    public RenderFragment? LoadingContent { get; set; }
+
+    [Parameter]
     public RenderFragment? HeaderContent { get; set; }
 
     [Parameter]
@@ -92,13 +100,13 @@
     protected override async Task OnInitializedAsync()
     {
         _context = await KustoContextFactory.CreateContextAsync();
-        await ReloadAsync();
+        await ReloadAsync(isReload: false);
     }
 
-    async Task ReloadAsync()
+    async Task ReloadAsync(bool isReload)
     {
         _isLoading = true;
-        var args = new LoadDataEventArgs(_context);
+        var args = new LoadDataEventArgs(_context, isReload);
         await OnLoadData.InvokeAsync(args);
         _firstLoadComplete = true;
         _results = args.Results;
@@ -107,12 +115,14 @@
 
     public class LoadDataEventArgs
     {
+        public bool IsRefresh { get; }
         public KustoContext Context { get; }
         public IReadOnlyList<TResult> Results { get; set; } = Array.Empty<TResult>();
 
-        public LoadDataEventArgs(KustoContext context)
+        public LoadDataEventArgs(KustoContext context, bool isRefresh)
         {
             Context = context;
+            IsRefresh = isRefresh;
         }
     }
 }

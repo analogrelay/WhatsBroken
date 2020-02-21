@@ -1,33 +1,90 @@
 ﻿@page "/quarantined"
 @inject KustoContextFactory KustoContextFactory
+@inject BackgroundDataStore BackgroundData
 
-<QueryView TResult="TestCase" OnLoadData="OnLoadDataAsync">
+<QueryView TResult="RowState" OnLoadData="OnLoadDataAsync">
     <HeaderContent>
         Currently quarantined tests
     </HeaderContent>
+    <LoadingContent>
+        <div class="alert alert-warning">This query can <em>literally</em> take a minute or two...</div>
+    </LoadingContent>
     <ChildContent Context="results">
+        @if (IsCached)
+        {
+            <div class="alert alert-warning">This data is from the cache (updated every 10 minutes). Clicking refresh will force live data to be retrieved.</div>
+        }
         <table class="table table-sm table-responsive table-striped table-datagrid">
             <thead>
                 <tr>
-                    <th><span class="sr-only">Status</span></th>
+                    <th scope="col"><span class="sr-only">Expand for more details</span></th>
+                    <th scope="col"><span class="sr-only">Status</span></th>
+                    <th scope="col">First Run</th>
+                    <th scope="col">Pass Rate</th>
                     <th scope="col">Project</th>
                     <th scope="col">Type</th>
                     <th scope="col">Method</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach(var result in results)
+                @foreach (var (result, state) in results)
                 {
-                    <tr class="table-secondary">
+                    var passingPct = Math.Round(result.PassingRate * 100, 2);
+                    var colorClass = result.PassingRate switch
+                    {
+                        1.0 => "success",
+                        0 => "danger",
+                        _ => "warning"
+                    };
+                    <tr class="table-@colorClass">
+                        <td>
+                            <a @onclick="@(_ => state.ToggleExpanded())">
+                                <span class="oi @(state.IsExpanded ? "icofont-rounded-down" : "icofont-rounded-right")"></span>
+                            </a>
+                        </td>
                         <td>
                             <span title="Quarantined" class="symbol">☢</span>
+                        </td>
+                        <td title="@result.FirstRun">
+                            <span class="badge badge-pill badge-info">@result.FirstRun.Humanize()</span>
+                        </td>
+                        <td title="Passed in @result.PassingRuns out of @result.TotalRuns runs (@passingPct%)">
+                            <span class="badge badge-pill badge-info">@result.PassingRuns/@result.TotalRuns (@passingPct%)</span>
                         </td>
                         <td title="@result.Project">@result.Project</td>
                         <td><code title="@result.Type">@CompactNamespace(result.Type)</code></td>
                         <td title="@(result.Method)(@result.Arguments)">
-                            <TestHistoryLink Case="result">
+                            <TestHistoryLink Case="result.TestCase">
                                 <code title="@(result.Method)(@result.Arguments)">@(result.Method)(@result.Arguments)</code>
                             </TestHistoryLink>
+                        </td>
+                    </tr>
+                    <tr hidden="@(!state.IsExpanded)">
+                        <td colspan="7">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 title="@(result.Type).@(result.Method)(@result.Arguments)">
+                                        <code>@(result.Type).@(result.Method)(@result.Arguments)</code>
+                                    </h5>
+                                    <TestHistoryLink CssClass="badge badge-info" Case="result.TestCase">History <span class="icofont-external-link"></span></TestHistoryLink>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="card-title">@result.Project</h6>
+                                    <div>
+                                        <span class="badge badge-danger">Passed in @result.PassingRuns out of @result.TotalRuns runs (@passingPct%)</span>
+                                        <span class="badge badge-primary"><span class="symbol">🕒</span> Last run was <span title="@(result.LastRun?.ToString("O") ?? "<unknown>")">@(result.LastRun?.Humanize() ?? "<unknown>")</span></span>
+                                        <span class="badge badge-primary"><span class="symbol">🕒</span> First run was <span title="@(result.FirstRun?.ToString("O") ?? "<unknown>")">@(result.FirstRun?.Humanize() ?? "<unknown>")</span></span>
+                                        @if (result.LastFailure != null)
+                                        {
+                                            <span class="badge badge-danger"><span class="symbol">🕒</span> Last failure was <span title="@result.LastFailure.Value.ToString("O")">@result.LastFailure.Value.Humanize()</span></span>
+                                        }
+                                        @if (result.FirstFailure != null)
+                                        {
+                                            <span class="badge badge-danger"><span class="symbol">🕒</span> First failure was <span title="@result.FirstFailure.Value.ToString("O")">@result.FirstFailure.Value.Humanize()</span></span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -37,10 +94,46 @@
 </QueryView>
 
 @code {
-    async Task OnLoadDataAsync(QueryView<TestCase>.LoadDataEventArgs args)
+    public bool IsCached { get; set; }
+
+    async Task OnLoadDataAsync(QueryView<RowState>.LoadDataEventArgs args)
     {
-        args.Results = await args.Context.GetQuarantinedTestsAsync(
-            new[] { "dotnet/aspnetcore", "dotnet-aspnetcore" },
-            new[] { "refs/heads/master" });
+        IReadOnlyList<QuarantineHistory> results;
+        if (args.IsRefresh)
+        {
+            IsCached = false;
+            results = await args.Context.GetQuarantineHistoryAsync(
+                new[] { "dotnet/aspnetcore", "dotnet-aspnetcore" },
+                new[] { "refs/heads/master" });
+        }
+        else
+        {
+            IsCached = true;
+            results = await BackgroundData.GetQuarantineHistoriesAsync();
+        }
+
+        args.Results = results.Select(r => new RowState(r)).ToList();
+    }
+
+    class RowState
+    {
+        public QuarantineHistory Data { get; set; }
+        public bool IsExpanded { get; set; }
+
+        public RowState(QuarantineHistory data)
+        {
+            Data = data;
+        }
+
+        public void Deconstruct(out QuarantineHistory data, out RowState state)
+        {
+            data = Data;
+            state = this;
+        }
+
+        public void ToggleExpanded()
+        {
+            IsExpanded = !IsExpanded;
+        }
     }
 }

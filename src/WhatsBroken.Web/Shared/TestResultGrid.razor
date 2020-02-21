@@ -58,12 +58,12 @@
                         <span title="@FormatBuildInfo(result, includeDate: true)">
                             @if (string.IsNullOrEmpty(result.BuildId))
                             {
-                                @result.Finished.Humanize()
+                                <span class="badge badge-pill badge-info">@result.Finished.Humanize()</span>
                             }
                             else
                             {
                                 <a href="https://dev.azure.com/dnceng/@(result.AzDoProject)/_build/results?buildId=@(result.BuildId)&view=ms.vss-test-web.build-test-results-tab" target="_blank">
-                                    @result.Finished.Humanize()
+                                    <span class="badge badge-pill badge-info">@result.Finished.Humanize()</span>
                                 </a>
                             }
                         </span>
