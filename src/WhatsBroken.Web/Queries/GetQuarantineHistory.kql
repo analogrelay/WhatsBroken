@@ -43,4 +43,4 @@ mostRecentBuilds
     LastFailure = maxif(Finished, Result == "Fail")
     by Project, Type, Method, Arguments, ArgumentHash
 | extend PassingRate = todouble(PassingRuns) / todouble(TotalRuns)
-| sort by PassingRate asc, TotalRuns asc
+| sort by PassingRate asc, FirstRun desc
