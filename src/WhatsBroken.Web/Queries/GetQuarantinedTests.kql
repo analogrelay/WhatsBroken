@@ -22,7 +22,7 @@ Jobs
 | join kind = inner (mostRecentBuild) on BuildDefinition, BuildNumber
 | join kind = inner (WorkItems) on JobId
 | join kind = inner (TestResults) on WorkItemId
-| where (Traits contains "Flaky") or (Traits contains "Quarantine")
+| where ((Traits contains "Flaky") or (Traits contains "Quarantine")) and (Result != "Skip")
 | extend NameSegments = split(WorkItemFriendlyName, "--")
 | extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1])
 | distinct Project, Type1, Method, Arguments, ArgumentHash

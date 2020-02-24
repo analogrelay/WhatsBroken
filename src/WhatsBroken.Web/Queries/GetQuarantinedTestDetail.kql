@@ -17,8 +17,8 @@ let quarantinedTests = materialize(mostRecentBuilds
 | join kind = inner (WorkItems) on JobId
 | project WorkItemId
 | join kind = inner (TestResults) on WorkItemId
-| project WorkItemFriendlyName, Traits, Type, Method, Arguments, ArgumentHash
-| where (Traits contains "Flaky") or (Traits contains "Quarantine")
+| project WorkItemFriendlyName, Traits, Type, Method, Arguments, ArgumentHash, Result
+| where (Result != "Skip") and ((Traits contains "Flaky") or (Traits contains "Quarantine"))
 | extend NameSegments = split(WorkItemFriendlyName, "--")
 | extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1]));
 

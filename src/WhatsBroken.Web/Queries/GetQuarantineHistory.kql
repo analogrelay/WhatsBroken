@@ -22,8 +22,8 @@ let quarantinedTests = materialize(mostRecentBuilds
 | join kind = inner (WorkItems) on JobId
 | project WorkItemId
 | join kind = inner (TestResults) on WorkItemId
-| project WorkItemFriendlyName, Traits, Type, Method, Arguments, ArgumentHash
-| where (Traits contains "Flaky") or (Traits contains "Quarantine")
+| project Result, WorkItemFriendlyName, Traits, Type, Method, Arguments, ArgumentHash
+| where (Result != "Skip") and ((Traits contains "Flaky") or (Traits contains "Quarantine"))
 | extend NameSegments = split(WorkItemFriendlyName, "--")
 | extend Project = tostring(NameSegments[0]), Framework = tostring(NameSegments[1]));
 
@@ -44,3 +44,4 @@ mostRecentBuilds
     by Project, Type, Method, Arguments, ArgumentHash
 | extend PassingRate = todouble(PassingRuns) / todouble(TotalRuns)
 | sort by PassingRate asc, FirstRun desc
+
