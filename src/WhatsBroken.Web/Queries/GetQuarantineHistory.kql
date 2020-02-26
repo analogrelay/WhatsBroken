@@ -36,12 +36,13 @@ mostRecentBuilds
 | summarize 
     PassingRuns = countif(Result == "Pass"), 
     FailingRuns = countif(Result == "Fail"),
+    SkippedRuns = countif(Result == "Skip"),
     TotalRuns = count(),
     FirstRun = min(Finished),
     LastRun = max(Finished),
     FirstFailure = minif(Finished, Result == "Fail"),
     LastFailure = maxif(Finished, Result == "Fail")
     by Project, Type, Method, Arguments, ArgumentHash
-| extend PassingRate = todouble(PassingRuns) / todouble(TotalRuns)
+| extend PassingRate = todouble(PassingRuns) / todouble(TotalRuns - SkippedRuns)
 | sort by PassingRate asc, FirstRun desc
 

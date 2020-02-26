@@ -11,6 +11,7 @@ namespace WhatsBroken.Web.Model
         public string ArgumentHash { get; set; } = default!;
         public long PassingRuns { get; set; }
         public long FailingRuns { get; set; }
+        public long SkippedRuns { get; set; }
         public long TotalRuns { get; set; }
         public DateTime? FirstRun { get; set; }
         public DateTime? LastRun { get; set; }

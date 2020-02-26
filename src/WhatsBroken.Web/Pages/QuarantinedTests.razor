@@ -48,8 +48,8 @@
                         <td title="@result.FirstRun">
                             <span class="badge badge-pill badge-info">@result.FirstRun.Humanize()</span>
                         </td>
-                        <td title="Passed in @result.PassingRuns out of @result.TotalRuns runs (@passingPct%)">
-                            <span class="badge badge-pill badge-info">@result.PassingRuns/@result.TotalRuns (@passingPct%)</span>
+                        <td title="Passed in @result.PassingRuns out of @(result.TotalRuns - result.SkippedRuns)  unskipped runs (@passingPct%), skipped in @result.SkippedRuns runs">
+                            <span class="badge badge-pill badge-info">@result.PassingRuns/@(result.TotalRuns - result.SkippedRuns) (@passingPct%)</span>
                         </td>
                         <td title="@result.Project">@result.Project</td>
                         <td><code title="@result.Type">@CompactNamespace(result.Type)</code></td>
@@ -71,7 +71,11 @@
                                 <div class="card-body">
                                     <h6 class="card-title">@result.Project</h6>
                                     <div>
-                                        <span class="badge badge-danger">Passed in @result.PassingRuns out of @result.TotalRuns runs (@passingPct%)</span>
+                                        <span class="badge badge-danger">Passed in @result.PassingRuns out of @(result.TotalRuns - result.SkippedRuns) runs (@passingPct%)</span>
+                                        @if(result.SkippedRuns > 0)
+                                        {
+                                            <span class="badge badge-warning">Skipped in @result.SkippedRuns runs.</span>
+                                        }
                                         <span class="badge badge-primary"><span class="symbol">🕒</span> Last run was <span title="@(result.LastRun?.ToString("O") ?? "<unknown>")">@(result.LastRun?.Humanize() ?? "<unknown>")</span></span>
                                         <span class="badge badge-primary"><span class="symbol">🕒</span> First run was <span title="@(result.FirstRun?.ToString("O") ?? "<unknown>")">@(result.FirstRun?.Humanize() ?? "<unknown>")</span></span>
                                         @if (result.LastFailure != null)
