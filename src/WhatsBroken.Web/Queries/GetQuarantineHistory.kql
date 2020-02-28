@@ -11,7 +11,7 @@ let start = startofday(now(), -30);
 let end = now();
 
 let mostRecentBuilds = materialize(Jobs
-| where Repository in ("dotnet/aspnetcore", "dotnet-aspnetcore") and Branch == "refs/heads/master" and Finished between (start..end)
+| where Repository in (repositories) and (isempty(toscalar(branchFilter)) or Branch in (branchFilter)) and Finished between (start..end)
 | extend ParsedProps = parse_json(Properties)
 | extend BuildNumber = tostring(ParsedProps.buildNumber), BuildDefinition = tostring(ParsedProps.buildDefinition), RunType = tostring(ParsedProps.runType)
 | where RunType == "quarantined" and not(isempty(BuildNumber))
@@ -45,4 +45,3 @@ mostRecentBuilds
     by Project, Type, Method, Arguments, ArgumentHash
 | extend PassingRate = todouble(PassingRuns) / todouble(TotalRuns - SkippedRuns)
 | sort by PassingRate asc, FirstRun desc
-

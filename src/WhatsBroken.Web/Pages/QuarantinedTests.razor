@@ -10,6 +10,7 @@
         <div class="alert alert-warning">This query can <em>literally</em> take a minute or two...</div>
     </LoadingContent>
     <ChildContent Context="results">
+        <p>There are <strong>@results.Count()</strong> quarantined tests.</p>
         @if (IsCached)
         {
             <div class="alert alert-warning">This data is from the cache (updated every 10 minutes). Clicking refresh will force live data to be retrieved.</div>

@@ -149,6 +149,8 @@ namespace WhatsBroken.Web
                 new[] { "refs/heads/master" },
                 cancellationToken);
 
+            _logger.LogInformation("Loaded {Count} quarantined tests.", list.Count);
+
             _backgroundDataStore.UpdateQuarantinedTests(list);
         }
     }
