@@ -55,6 +55,9 @@ namespace WhatsBroken.Web
                 options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("::ffff:192.168.0.0"), 112));
                 options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse("::ffff:172.16.0.0"), 108));
             });
+
+            services.Configure<AzureDevOpsOptions>(Configuration.GetSection("AzDO"));
+            services.AddSingleton<AzureDevOpsService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -18,7 +18,8 @@ namespace WhatsBroken.Worker
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((hostContext, services) =>
                 {
-                    services.AddHostedService<Worker>();
+                    services.Configure<AzureDevOpsOptions>(hostContext.Configuration.GetSection("AzDO"));
+                    services.AddHostedService<AzureDevOpsService>();
                 });
     }
 }
