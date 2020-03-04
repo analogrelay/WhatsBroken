@@ -10,6 +10,9 @@ namespace WhatsBroken.Worker.Model
         public int PipelineId { get; set; }
         public string? BuildNumber { get; set; }
         public DateTime? FinishedDate { get; set; }
+        public DateTime? SyncStartDate { get; set; }
+        public DateTime? SyncEndDate { get; set; }
+        public int? ModelVersion { get; set; }
 
         public Pipeline? Pipeline { get; set; }
         public IList<TestRun>? TestRuns { get; set; }

@@ -11,6 +11,7 @@ namespace WhatsBroken.Worker.Model
         public string? Method { get; set; }
         public string? Arguments { get; set; }
         public string? ArgumentHash { get; set; }
+        public string? Kind { get; set; }
 
         public IList<TestResult>? Results { get; set; }
 
@@ -20,7 +21,6 @@ namespace WhatsBroken.Worker.Model
             model.Property(x => x.Project).IsRequired();
             model.Property(x => x.Type).IsRequired();
             model.Property(x => x.Method).IsRequired();
-            model.Property(x => x.ArgumentHash).IsRequired();
         }
     }
 }

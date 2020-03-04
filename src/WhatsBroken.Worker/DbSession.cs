@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.Extensions.Logging;
 using Microsoft.TeamFoundation.Build.WebApi;
 using Microsoft.TeamFoundation.TestManagement.WebApi;
 using WhatsBroken.Worker.Model;
@@ -22,12 +24,15 @@ namespace WhatsBroken.Worker
         bool _dirty;
 
         readonly WhatsBrokenDbContext _db;
-        readonly Dictionary<(string Project, string Type, string Method, string ArgumentHash), TestCase> _testCaseCache;
+        readonly Dictionary<(string Project, string Type, string Method, string? ArgumentHash, string Kind), TestCase> _testCaseCache;
+        readonly ILogger _logger;
+        readonly SHA1 _sha = SHA1.Create();
 
-        private DbSession(WhatsBrokenDbContext db, Dictionary<(string Project, string Type, string Method, string ArgumentHash), TestCase> testCaseCache)
+        private DbSession(WhatsBrokenDbContext db, Dictionary<(string Project, string Type, string Method, string? ArgumentHash, string Kind), TestCase> testCaseCache, ILogger logger)
         {
             _db = db;
             _testCaseCache = testCaseCache;
+            _logger = logger;
         }
 
         public async Task<Pipeline> GetOrCreatePipelineAsync(BuildDefinition definition, CancellationToken cancellationToken)
@@ -49,34 +54,19 @@ namespace WhatsBroken.Worker
             return pipeline;
         }
 
-        public async Task<Build> GetOrCreateBuildAsync(Pipeline pipeline, AzDoBuild azDoBuild, CancellationToken cancellationToken)
+        public async Task<TestCase> GetOrCreateTestCaseAsync(string project, string type, string method, string? args, string kind, CancellationToken cancellationToken)
         {
-            var build = pipeline.Id == 0 ? null : await _db.Builds.FirstOrDefaultAsync(b => b.ProjectId == azDoBuild.Project.Id && b.AzDoId == azDoBuild.Id, cancellationToken);
-            if (build == null)
-            {
-                build = new Build()
-                {
-                    Pipeline = pipeline,
-                    ProjectId = pipeline.ProjectId,
-                    AzDoId = azDoBuild.Id,
-                    BuildNumber = azDoBuild.BuildNumber,
-                    FinishedDate = azDoBuild.FinishTime
-                };
-                _db.Builds.Add(build);
-                _dirty = true;
-            }
-            return build;
-        }
-
-        public async Task<TestCase> GetOrCreateTestCaseAsync(string project, string type, string method, string args, CancellationToken cancellationToken)
-        {
-            if (_testCaseCache.TryGetValue((project, type, method, args), out var testCase))
+            var argHash = string.IsNullOrEmpty(args) ?
+                null :
+                Convert.ToBase64String(_sha.ComputeHash(Encoding.UTF8.GetBytes(args)));
+            var key = (project, type, method, argHash, kind);
+            if (_testCaseCache.TryGetValue(key, out var testCase))
             {
                 return testCase;
             }
             else
             {
-                testCase = await _db.TestCases.FirstOrDefaultAsync(t => t.Project == project && t.Type == type && t.Method == method && t.ArgumentHash == args, cancellationToken);
+                testCase = await _db.TestCases.FirstOrDefaultAsync(t => t.Project == project && t.Type == type && t.Method == method && t.ArgumentHash == argHash && t.Kind == kind, cancellationToken);
                 if (testCase == null)
                 {
                     testCase = new TestCase()
@@ -85,9 +75,11 @@ namespace WhatsBroken.Worker
                         Type = type,
                         Method = method,
                         Arguments = args,
-                        ArgumentHash = args,
+                        ArgumentHash = argHash,
+                        Kind = kind.ToLowerInvariant(),
                     };
                     _db.TestCases.Add(testCase);
+                    _testCaseCache[key] = testCase;
                     _dirty = true;
                 }
                 return testCase;
@@ -103,14 +95,45 @@ namespace WhatsBroken.Worker
             }
         }
 
-        internal static async Task<DbSession> CreateAsync(WhatsBrokenDbContext db, CancellationToken cancellationToken)
+        internal static async Task<DbSession> CreateAsync(WhatsBrokenDbContext db, ILogger logger, CancellationToken cancellationToken)
         {
             // Pre-load the cache of test cases
-            var cases = await db.TestCases.ToDictionaryAsync(t => (t.Project, t.Type, t.Method, t.ArgumentHash), cancellationToken);
-            return new DbSession(db, cases);
+            var cases = await db.TestCases.ToDictionaryAsync(t => (t.Project, t.Type, t.Method, t.ArgumentHash, t.Kind), cancellationToken);
+            return new DbSession(db, cases, logger);
         }
 
-        public TestRun CreateRun(Build build, AzDoTestRun azDoRun)
+        public async Task<Build?> TryCreateBuildAsync(Pipeline pipeline, AzDoBuild azDoBuild, CancellationToken cancellationToken)
+        {
+            var build = pipeline.Id == 0 ? null : await _db.Builds.FirstOrDefaultAsync(b => b.ProjectId == azDoBuild.Project.Id && b.AzDoId == azDoBuild.Id, cancellationToken);
+            if (build != null)
+            {
+                if (build.SyncEndDate == null)
+                {
+                    // Retry the sync
+                    _db.Builds.Remove(build);
+                    _dirty = true;
+                }
+                else
+                {
+                    // Already synced!
+                    return null;
+                }
+            }
+
+            build = new Build()
+            {
+                Pipeline = pipeline,
+                ProjectId = pipeline.ProjectId,
+                AzDoId = azDoBuild.Id,
+                BuildNumber = azDoBuild.BuildNumber,
+                FinishedDate = azDoBuild.FinishTime
+            };
+            _db.Builds.Add(build);
+            _dirty = true;
+            return build;
+        }
+
+        public TestRun CreateRun(Build build, AzDoTestRun azDoRun, string? runType)
         {
             var run = new TestRun
             {
@@ -118,43 +141,87 @@ namespace WhatsBroken.Worker
                 AzDoId = azDoRun.Id,
                 Name = azDoRun.Name,
                 Build = build,
+                Type = runType,
             };
             _db.TestRuns.Add(run);
             _dirty = true;
             return run;
         }
 
-        public async Task<TestResult> CreateResultAsync(TestRun run, TestCaseResult azDoResult, CancellationToken cancellationToken)
+        public async Task CreateResultsAsync(TestRun run, TestCaseResult azDoResult, CancellationToken cancellationToken)
         {
-            var project = Path.GetFileNameWithoutExtension(azDoResult.AutomatedTestStorage);
-
-            // Parse the name into the type, method, args, etc.
-            var (type, method, args) = ParseTestName(azDoResult.AutomatedTestName);
-
-            var testCase = await GetOrCreateTestCaseAsync(project, type, method, args, cancellationToken);
-
-            var result = new TestResult()
+            // For now, skip jUnit tests
+            if(string.Equals(azDoResult.AutomatedTestType, "junit", StringComparison.OrdinalIgnoreCase))
             {
-                Run = run,
-                Case = testCase,
-                Outcome = azDoResult.Outcome switch
+                return;
+            }
+
+
+            void AddResult(TestCase testCase, string outcome)
+            {
+                var result = new TestResult()
                 {
-                    "Passed" => TestResultOutcome.Passed,
-                    "Failed" => TestResultOutcome.Failed,
-                    _ => TestResultOutcome.Unknown,
+                    Run = run,
+                    Case = testCase,
+                    Outcome = outcome
+                };
+                _db.TestResults.Add(result);
+                _dirty = true;
+            }
+
+            var project = ParseProject(azDoResult);
+
+            if (azDoResult.SubResults == null)
+            {
+                // Parse the name into the type, method, args, etc.
+                // JS tests are the only ones with a space in them, so parse them a little different.
+                var (type, method, args) = ParseTestName(azDoResult.AutomatedTestName);
+
+                var testCase = await GetOrCreateTestCaseAsync(project, type, method, args, azDoResult.AutomatedTestType, cancellationToken);
+                AddResult(testCase, azDoResult.Outcome);
+            }
+            else
+            {
+                foreach (var subresult in azDoResult.SubResults)
+                {
+                    // Parse the name into the type, method, args, etc.
+                    var (type, method, args) = ParseTestName(subresult.DisplayName);
+
+                    var testCase = await GetOrCreateTestCaseAsync(project, type, method, args, azDoResult.AutomatedTestType, cancellationToken);
+                    AddResult(testCase, subresult.Outcome);
                 }
-            };
-            _db.TestResults.Add(result);
-            _dirty = true;
-            return result;
+            }
+        }
+
+        private string ParseProject(TestCaseResult result)
+        {
+            if (result.AutomatedTestStorage.EndsWith(".dll"))
+            {
+                return Path.GetFileNameWithoutExtension(result.AutomatedTestStorage);
+            }
+            else
+            {
+                var doubleDashIdx = result.AutomatedTestStorage.IndexOf("--");
+                if (doubleDashIdx >= 0)
+                {
+                    return result.AutomatedTestStorage.Substring(0, doubleDashIdx);
+                }
+                _logger.LogWarning("Unexpected Test Storage Name: '{TestStorageName}'.", result.AutomatedTestStorage);
+                return result.AutomatedTestStorage;
+            }
         }
 
         private (string type, string method, string args) ParseTestName(string automatedTestName)
         {
             // Parse up to a '(', if there is one
             var parenIndex = automatedTestName.IndexOf('(');
-            var preArgs = parenIndex < 0 ? automatedTestName : automatedTestName.Substring(0, parenIndex);
-            var args = parenIndex < 0 ? string.Empty : automatedTestName.Substring(parenIndex);
+            var preArgs = automatedTestName;
+            var args = string.Empty;
+            if (parenIndex >= 0)
+            {
+                preArgs = automatedTestName.Substring(0, parenIndex);
+                args = automatedTestName.Substring(parenIndex + 1, automatedTestName.Length - parenIndex - 2);
+            }
 
             // Take everything up to the last '.' as the type
             var lastDotIdx = preArgs.LastIndexOf('.');

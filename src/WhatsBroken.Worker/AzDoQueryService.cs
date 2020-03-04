@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.TeamFoundation;
 using Microsoft.TeamFoundation.Build.WebApi;
 using Microsoft.TeamFoundation.Core.WebApi;
-using Microsoft.TeamFoundation.Test.WebApi;
 using Microsoft.TeamFoundation.TestManagement.WebApi;
 using Microsoft.VisualStudio.Services.Common;
 using Microsoft.VisualStudio.Services.WebApi;
@@ -19,12 +19,13 @@ using AzDoBuild = Microsoft.TeamFoundation.Build.WebApi.Build;
 using AzDoTestRun = Microsoft.TeamFoundation.TestManagement.WebApi.TestRun;
 
 using Build = WhatsBroken.Worker.Model.Build;
-using TestRun = WhatsBroken.Worker.Model.TestRun;
 
 namespace WhatsBroken.Worker
 {
     public class AzDoQueryService : BackgroundService
     {
+        const int CurrentModelVersion = 1;
+
         private readonly ILogger<AzDoQueryService> _logger;
         readonly IOptionsMonitor<AzDoQueryOptions> _options;
         readonly WhatsBrokenDbContext _db;
@@ -79,7 +80,8 @@ namespace WhatsBroken.Worker
         private async Task SyncDataAsync(AzDoQueryOptions options, VssConnection vss, CancellationToken cancellationToken)
         {
             // Create a Db Session
-            var db = await DbSession.CreateAsync(_db, cancellationToken);
+            var db = await DbSession.CreateAsync(_db, _logger, cancellationToken);
+            var startTime = DateTimeOffset.UtcNow.Subtract(TimeSpan.FromDays(30));
 
             var buildsClient = await vss.GetClientAsync<BuildHttpClient>(cancellationToken);
             var testsClient = await vss.GetClientAsync<TestManagementHttpClient>(cancellationToken);
@@ -90,11 +92,11 @@ namespace WhatsBroken.Worker
             // Now iterate through the pipelines and grab new builds to sync
             foreach (var (definition, pipelineOptions) in buildDefinitions)
             {
-                await SyncDefinitionAsync(db, definition, pipelineOptions, buildsClient, testsClient, cancellationToken);
+                await SyncDefinitionAsync(db, definition, pipelineOptions, buildsClient, testsClient, startTime, cancellationToken);
             }
         }
 
-        private async Task SyncDefinitionAsync(DbSession db, BuildDefinition definition, PipelineOptions options, BuildHttpClient buildsClient, TestManagementHttpClient testsClient, CancellationToken cancellationToken)
+        private async Task SyncDefinitionAsync(DbSession db, BuildDefinition definition, PipelineOptions options, BuildHttpClient buildsClient, TestManagementHttpClient testsClient, DateTimeOffset startTime, CancellationToken cancellationToken)
         {
             // Ensure the definition has a pipeline record
             var pipeline = await db.GetOrCreatePipelineAsync(definition, cancellationToken);
@@ -107,54 +109,72 @@ namespace WhatsBroken.Worker
                 definitions: new[] { definition.Id },
                 statusFilter: BuildStatus.Completed,
                 queryOrder: BuildQueryOrder.FinishTimeDescending,
-                top: 1,
+                minFinishTime: startTime.UtcDateTime,
                 cancellationToken: cancellationToken);
             _logger.LogTrace("Fetched {Count} new builds {Project}:{DefinitionId}", builds.Count, definition.Project.Id, definition.Id);
 
             foreach (var build in builds)
             {
-                _logger.LogDebug("Synchronizing build {Project}/{Pipeline}#{BuildNumber}", definition.Project.Id, definition.Name, build.BuildNumber);
-                await SyncBuildAsync(db, build, pipeline, options, buildsClient, testsClient, cancellationToken);
+                await SyncBuildAsync(db, build, pipeline, options, testsClient, cancellationToken);
             }
         }
 
-        private async Task SyncBuildAsync(DbSession db, AzDoBuild azDoBuild, Pipeline pipeline, PipelineOptions options, BuildHttpClient buildsClient, TestManagementHttpClient testsClient, CancellationToken cancellationToken)
+        private async Task SyncBuildAsync(DbSession db, AzDoBuild azDoBuild, Pipeline pipeline, PipelineOptions options, TestManagementHttpClient testsClient, CancellationToken cancellationToken)
         {
-            var build = await db.GetOrCreateBuildAsync(pipeline, azDoBuild, cancellationToken);
-
-            // Grab all the test runs
-            var runs = await testsClient.GetTestRunsAsync(
-                project: azDoBuild.Project.Id,
-                buildUri: azDoBuild.Uri.ToString(),
-                cancellationToken: cancellationToken);
-
-            foreach (var run in runs)
+            var build = await db.TryCreateBuildAsync(pipeline, azDoBuild, cancellationToken);
+            if (build != null)
             {
-                _logger.LogDebug("Synchronizing test run {Project}/{Pipeline}#{BuildNumber}/{RunName}", azDoBuild.Project.Id, azDoBuild.Definition.Name, azDoBuild.BuildNumber, run.Name);
-                await SyncRunAsync(db, azDoBuild.Project, build, run, testsClient, cancellationToken);
-            }
+                build.SyncStartDate = DateTime.UtcNow;
+                build.ModelVersion = CurrentModelVersion;
+                await db.SaveChangesAsync();
 
-            await db.SaveChangesAsync();
+                _logger.LogDebug("Synchronizing build {Project}/{Pipeline}#{BuildNumber}", pipeline.Project, pipeline.Name, build.BuildNumber);
+
+                // Grab all the test runs
+                var runs = await testsClient.GetTestRunsAsync(
+                    project: azDoBuild.Project.Id,
+                    buildUri: azDoBuild.Uri.ToString(),
+                    cancellationToken: cancellationToken);
+
+                foreach (var run in runs)
+                {
+                    _logger.LogDebug("Synchronizing test run {Project}/{Pipeline}#{BuildNumber}/{RunName}", azDoBuild.Project.Id, azDoBuild.Definition.Name, azDoBuild.BuildNumber, run.Name);
+                    await SyncRunAsync(db, azDoBuild.Project, build, run, options, testsClient, cancellationToken);
+                }
+
+                build.SyncEndDate = DateTime.UtcNow;
+                await db.SaveChangesAsync();
+            }
         }
 
-        private async Task SyncRunAsync(DbSession db, TeamProjectReference project, Build build, AzDoTestRun azDoRun, TestManagementHttpClient testsClient, CancellationToken cancellationToken)
+        private async Task SyncRunAsync(DbSession db, TeamProjectReference project, Build build, AzDoTestRun azDoRun, PipelineOptions options, TestManagementHttpClient testsClient, CancellationToken cancellationToken)
         {
-            var run = db.CreateRun(build, azDoRun);
+            var run = db.CreateRun(build, azDoRun, options.RunType);
 
             // Grab all the results
+            // Including Subresults from this API isn't possible :(.
             var results = await testsClient.GetTestResultsAsync(
                 project: project.Id,
                 runId: azDoRun.Id,
-                detailsToInclude: ResultDetails.SubResults,
                 cancellationToken: cancellationToken);
 
-            foreach(var result in results)
+            // Load all the results up into a list first
+            var allResults = new List<TestCaseResult>();
+            foreach (var result in results)
             {
-                if(result.ResultGroupType != ResultGroupType.None)
+                var fullResult = result.ResultGroupType switch
                 {
-                    throw new NotSupportedException("Not supported: tests with subresults.");
-                }
-                await db.CreateResultAsync(run, result, cancellationToken);
+                    ResultGroupType.DataDriven => await testsClient.GetTestResultByIdAsync(run.ProjectId, run.AzDoId, result.Id, detailsToInclude: ResultDetails.SubResults),
+                    _ => result,
+                };
+
+                allResults.Add(fullResult);
+            }
+
+            // Then iterate and add to the db
+            foreach(var result in allResults)
+            {
+                await db.CreateResultsAsync(run, result, cancellationToken);
             }
         }
 

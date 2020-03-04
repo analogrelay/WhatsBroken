@@ -34,7 +34,8 @@ namespace WhatsBroken.Worker.Migrations
                     Type = table.Column<string>(nullable: false),
                     Method = table.Column<string>(nullable: false),
                     Arguments = table.Column<string>(nullable: true),
-                    ArgumentHash = table.Column<string>(nullable: false)
+                    ArgumentHash = table.Column<string>(nullable: true),
+                    Kind = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -51,7 +52,10 @@ namespace WhatsBroken.Worker.Migrations
                     AzDoId = table.Column<int>(nullable: false),
                     PipelineId = table.Column<int>(nullable: false),
                     BuildNumber = table.Column<string>(nullable: false),
-                    FinishedDate = table.Column<DateTime>(nullable: true)
+                    FinishedDate = table.Column<DateTime>(nullable: true),
+                    SyncStartDate = table.Column<DateTime>(nullable: true),
+                    SyncEndDate = table.Column<DateTime>(nullable: true),
+                    ModelVersion = table.Column<int>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -73,7 +77,8 @@ namespace WhatsBroken.Worker.Migrations
                     ProjectId = table.Column<Guid>(nullable: false),
                     AzDoId = table.Column<int>(nullable: false),
                     BuildId = table.Column<int>(nullable: false),
-                    Name = table.Column<string>(nullable: false)
+                    Name = table.Column<string>(nullable: false),
+                    Type = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {

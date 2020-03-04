@@ -10,7 +10,7 @@ using WhatsBroken.Worker.Model;
 namespace WhatsBroken.Worker.Migrations
 {
     [DbContext(typeof(WhatsBrokenDbContext))]
-    [Migration("20200304013152_Initial")]
+    [Migration("20200304063217_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -38,11 +38,20 @@ namespace WhatsBroken.Worker.Migrations
                     b.Property<DateTime?>("FinishedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("ModelVersion")
+                        .HasColumnType("int");
+
                     b.Property<int>("PipelineId")
                         .HasColumnType("int");
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("SyncEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("SyncStartDate")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -95,10 +104,12 @@ namespace WhatsBroken.Worker.Migrations
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
                     b.Property<string>("ArgumentHash")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Arguments")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Kind")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Method")
@@ -185,6 +196,9 @@ namespace WhatsBroken.Worker.Migrations
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
