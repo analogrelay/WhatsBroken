@@ -174,7 +174,6 @@ namespace WhatsBroken.Worker
             if (azDoResult.SubResults == null)
             {
                 // Parse the name into the type, method, args, etc.
-                // JS tests are the only ones with a space in them, so parse them a little different.
                 var (type, method, args) = ParseTestName(azDoResult.AutomatedTestName);
 
                 var testCase = await GetOrCreateTestCaseAsync(project, type, method, args, azDoResult.AutomatedTestType, cancellationToken);
