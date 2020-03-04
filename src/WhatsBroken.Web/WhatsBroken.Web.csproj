@@ -3,49 +3,10 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UserSecretsId>aspnet-WhatsBroken.Web-FB2C9D87-DE43-47A1-9B6D-CDAC68341525</UserSecretsId>
-    <Nullable>enable</Nullable>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <DockerfileContext>..\..</DockerfileContext>
-
-    <TypeScriptNoImplicitAny>True</TypeScriptNoImplicitAny>
-    <TypeScriptTarget>ES2017</TypeScriptTarget>
-    <TypeScriptSourceMap>True</TypeScriptSourceMap>
-
-    <!-- Work around analyzer issue in Blazor -->
-    <DisableImplicitComponentsAnalyzers>true</DisableImplicitComponentsAnalyzers>
-    <TypeScriptToolsVersion>3.7</TypeScriptToolsVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_BUILDNUMBER)' != ''">
-      <_Parameter1>Build.BuildNumber</_Parameter1>
-      <_Parameter2>$(BUILD_BUILDNUMBER)</_Parameter2>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_BUILDDEFINITIONNAME)' != ''">
-      <_Parameter1>Build.BuildDefinitionName</_Parameter1>
-      <_Parameter2>$(BUILD_BUILDDEFINITIONNAME)</_Parameter2>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_BUILDID)' != ''">
-      <_Parameter1>Build.BuildId</_Parameter1>
-      <_Parameter2>$(BUILD_BUILDID)</_Parameter2>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_SOURCEVERSION)' != ''">
-      <_Parameter1>Build.SourceVersion</_Parameter1>
-      <_Parameter2>$(BUILD_SOURCEVERSION)</_Parameter2>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_SOURCEBRANCH)' != ''">
-      <_Parameter1>Build.SourceBranch</_Parameter1>
-      <_Parameter2>$(BUILD_SOURCEBRANCH)</_Parameter2>
-    </AssemblyAttribute>
-  </ItemGroup>
-
-  <ItemGroup>
     <EmbeddedResource Include="Queries\*.kql" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Queries\GetQuarantinedTestDetail.kql" />
   </ItemGroup>
 
   <ItemGroup>

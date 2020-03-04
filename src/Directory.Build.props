@@ -1,0 +1,33 @@
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Work around analyzer issue in Blazor -->
+    <DisableImplicitComponentsAnalyzers>true</DisableImplicitComponentsAnalyzers>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_BUILDNUMBER)' != ''">
+      <_Parameter1>Build.BuildNumber</_Parameter1>
+      <_Parameter2>$(BUILD_BUILDNUMBER)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_BUILDDEFINITIONNAME)' != ''">
+      <_Parameter1>Build.BuildDefinitionName</_Parameter1>
+      <_Parameter2>$(BUILD_BUILDDEFINITIONNAME)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_BUILDID)' != ''">
+      <_Parameter1>Build.BuildId</_Parameter1>
+      <_Parameter2>$(BUILD_BUILDID)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_SOURCEVERSION)' != ''">
+      <_Parameter1>Build.SourceVersion</_Parameter1>
+      <_Parameter2>$(BUILD_SOURCEVERSION)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BUILD_SOURCEBRANCH)' != ''">
+      <_Parameter1>Build.SourceBranch</_Parameter1>
+      <_Parameter2>$(BUILD_SOURCEBRANCH)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>
