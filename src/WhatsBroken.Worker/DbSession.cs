@@ -24,11 +24,11 @@ namespace WhatsBroken.Worker
         bool _dirty;
 
         readonly WhatsBrokenDbContext _db;
-        readonly Dictionary<(string Project, string Type, string Method, string? ArgumentHash, string Kind), TestCase> _testCaseCache;
+        readonly Dictionary<(string Project, string Type, string Method, string? ArgumentHash, string? Kind), TestCase> _testCaseCache;
         readonly ILogger _logger;
         readonly SHA1 _sha = SHA1.Create();
 
-        private DbSession(WhatsBrokenDbContext db, Dictionary<(string Project, string Type, string Method, string? ArgumentHash, string Kind), TestCase> testCaseCache, ILogger logger)
+        private DbSession(WhatsBrokenDbContext db, Dictionary<(string Project, string Type, string Method, string? ArgumentHash, string? Kind), TestCase> testCaseCache, ILogger logger)
         {
             _db = db;
             _testCaseCache = testCaseCache;
@@ -54,7 +54,7 @@ namespace WhatsBroken.Worker
             return pipeline;
         }
 
-        public async Task<TestCase> GetOrCreateTestCaseAsync(string project, string type, string method, string? args, string kind, CancellationToken cancellationToken)
+        public async Task<TestCase> GetOrCreateTestCaseAsync(string project, string type, string method, string? args, string? kind, CancellationToken cancellationToken)
         {
             var argHash = string.IsNullOrEmpty(args) ?
                 null :
@@ -76,7 +76,7 @@ namespace WhatsBroken.Worker
                         Method = method,
                         Arguments = args,
                         ArgumentHash = argHash,
-                        Kind = kind.ToLowerInvariant(),
+                        Kind = kind?.ToLowerInvariant(),
                     };
                     _db.TestCases.Add(testCase);
                     _testCaseCache[key] = testCase;
